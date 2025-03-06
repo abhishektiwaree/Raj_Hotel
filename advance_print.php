@@ -170,7 +170,7 @@ $style = 'thermal';
         <img src="images/a2.png" class="company-logo" height="70px" width="70px">
         <div class="header-text">
             <h5>ADVANCE RECEIPT</h5>
-            <h6>HOTEL RAJ PALACE</h6>
+            <h6> RHOTEL RAJ PALACE</h6>
             <p>Deokali-Fatehganj Road, Wazirganj Japti, Ayodhya-224001 (U.P)</p>
             <p>Contact: 05278-316015 | +91 9335452112 | +91 7755004900</p>
             <p>Email: hotelrajpalace.biz@gmail.com | Website: www.hotelrajpalace.biz</p>
