@@ -953,8 +953,8 @@ if (isset($_GET['del'])) {
 			<th>Number Of Room</th>
 			<th>Room Number</th>
 			<th>Booking Date</th>
-			<th></th>
-			<th></th>
+			<!-- <th></th>
+			<th></th> -->
 
 		</tr>
 		<?php
@@ -992,15 +992,19 @@ if (isset($_GET['del'])) {
 				} elseif ($row['purpose'] == "banquet_rent") {
 					echo '<td>Banquet Booking</td>';
 				}
-				echo '<td>' . $row['total_amount'] . '</td><td>' . $row['advance_amount'] . '</td><td>' . $row['due_amount'] . '</td><td>' . $roomTypeList . '</td><td>' . $row['number_of_room'] . '</td><td>' . $row['room_number'] . '</td>		
-		<td>' . date("d-m-Y,h-i A", strtotime($row['allotment_date'])) . '</td>';
-				if ($row['purpose'] == "room_rent") {
-					echo '<td><a href="allotment.php?check_in=' . $row['sno'] . '">Allot Room</a></td>';
-				} elseif ($row['purpose'] == "banquet_rent") {
-					echo '<td><a href="banquet_hall.php?allot=' . $row['sno'] . '">Allot Banquet</a></td>';
-				}
-				echo '<td><a href="advance_booking.php?e_id=' . $row['sno'] . '" onclick="return confirm(\'Are you sure?\');">Edit</a></td>
-	</tr>';
+				echo '<td>' . $row['total_amount'] . '</td><td>' . $row['advance_amount'] . '</td><td>' . $row['due_amount'] . '</td>';
+				echo '<td>' . str_replace(',', '<br>', $roomTypeList) . '</td>
+      <td>' . str_replace(',', '<br>', $row['number_of_room']) . '</td>
+      <td>' . str_replace(',', '<br>', $row['room_number']) . '</td>';
+		
+		echo'<td>' . date("d-m-Y,h-i A", strtotime($row['allotment_date'])) . '</td>';
+	// 			if ($row['purpose'] == "room_rent") {
+	// 				echo '<td><a href="allotment.php?check_in=' . $row['sno'] . '">Allot Room</a></td>';
+	// 			} elseif ($row['purpose'] == "banquet_rent") {
+	// 				echo '<td><a href="banquet_hall.php?allot=' . $row['sno'] . '">Allot Banquet</a></td>';
+	// 			}
+	// 			echo '<td><a href="advance_booking.php?e_id=' . $row['sno'] . '" onclick="return confirm(\'Are you sure?\');">Edit</a></td>
+	// </tr>';
 			}
 		}
 		?>
@@ -1107,7 +1111,7 @@ if (isset($_GET['del'])) {
 		newRow.querySelector("select").value = "";
 		newRow.querySelector(".rem_room").value = "";
 		newRow.querySelector("input[name='number_of_room[]']").value = "";
-
+		newRow.querySelector("input[name='room_number[]']").value = "";
 		// Change Add button to Remove
 		var btn = newRow.querySelector("button");
 		btn.innerText = "Remove";

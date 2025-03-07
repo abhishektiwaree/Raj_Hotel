@@ -89,20 +89,32 @@ if(!isset($_SESSION['session_id'])) {
 <?php 
 }
 else {
-$sql = "SELECT COUNT(*) as total_rows FROM advance_booking WHERE DATE(check_in) = '" . date('Y-m-d') . "'";
-$result = $db->query($sql);
-$row = $result->fetch_assoc();
-$totalCheckin = $row['total_rows'];
+	$sql = "SELECT number_of_room FROM advance_booking WHERE DATE(check_in) = '" . date('Y-m-d') . "' and status=0";
+	$result = execute_query( $sql);
+	
+	$totalCheckin = 0;
+	
+	while ($row = mysqli_fetch_assoc($result)) {
+		$numbers = explode(',', $row['number_of_room']); // Split CSV values
+		$totalCheckin += array_sum(array_map('intval', $numbers)); // Convert to int and sum
+	}
 
-$sql = "SELECT COUNT(*) as total_rows1 FROM advance_booking WHERE DATE(check_out) = '" . date('Y-m-d') . "'";
-$result = $db->query($sql);
-$row = $result->fetch_assoc();
-$totalCheckout = $row['total_rows1'];
 
-$sql = 'SELECT COUNT(*) as room_rows FROM room_master';
+
+$sql = "SELECT number_of_room FROM advance_booking WHERE DATE(check_out) = '" . date('Y-m-d') . "'and status=0";
+	$result = execute_query( $sql);
+	
+	$totalCheckout = 0;
+	
+	while ($row = mysqli_fetch_assoc($result)) {
+		$numbers = explode(',', $row['number_of_room']); // Split CSV values
+		$totalCheckout += array_sum(array_map('intval', $numbers)); // Convert to int and sum
+	}
+
+$sql = "SELECT SUM(remarks) AS total_remarks FROM category";
 $result = $db->query($sql);
 $row = $result->fetch_assoc();
-$totalRoom = $row['room_rows'];
+$totalRoom = $row['total_remarks'];
 
 
 
@@ -117,13 +129,9 @@ $result = $db->query($sql);
 $row = $result->fetch_assoc();
 $totaltable = $row['table_rows'];
 
-$sql = 'SELECT COUNT(*) as row_count 
-FROM room_master 
-WHERE status = 0 OR status IS NULL;
-';
-$result = $db->query($sql);
-$row = $result->fetch_assoc();
-$avroom = $row['row_count'];
+
+
+$avroom = $totalRoom-$totalCheckin;
 
 
 $sql = 'SELECT COUNT(*) as waiter_rows FROM admin_waiter';
