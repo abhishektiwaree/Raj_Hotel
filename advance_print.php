@@ -188,7 +188,7 @@ $style = 'thermal';
                 <th>Company Name:</th>
                 <td><?php echo $cust['company_name']; ?></td>
                 <th>Date:</th>
-                <td><?php echo date("d-m-Y", strtotime($invoice['created_on'])); ?></td>
+                <td><?php echo date("d-m-Y", strtotime($invoice['allotment_date'])); ?></td>
             </tr>
             <tr>
                 <th>GSTIN No:</th>
@@ -201,6 +201,12 @@ $style = 'thermal';
                 <td><?php echo date('d-m-Y h:i A', strtotime($invoice['check_out'])); ?></td>
                 <th>Mobile:</th>
                 <td><?php echo $cust['mobile']; ?></td>
+            </tr>
+            <tr>
+                <th>Kitchen Dining:</th>
+                <td><?php echo $invoice['kitchen_dining']; ?></td>
+                <th>Amount:</th>
+                <td><?php echo $invoice['kitchen_amount']; ?></td>
             </tr>
             <tr>
                 <th>Payment Mode:</th>

@@ -5,10 +5,27 @@ logvalidate($_SESSION['username'], $_SERVER['SCRIPT_FILENAME']);
 logvalidate('admin');
 $response = 1;
 $msg = '';
-date_default_timezone_set('Asia/Calcutta');
+date_default_timezone_set('Asia/Kolkata'); // Adjust based on your region
 page_header();
 $tab = 1;
 $con = $db;
+
+$attachments = [];
+if (isset($_GET['e_id'])) {
+    $e_id = mysqli_real_escape_string($db, $_GET['e_id']);
+    $sql = "SELECT * FROM attachment WHERE advance_id = '$e_id'";
+    $result = execute_query($sql);
+    while ($row = mysqli_fetch_assoc($result)) {
+        $attachments[] = $row; // Store existing attachments in an array
+    }
+}
+// print_r($attachments);
+$editData = [
+	'cat_id' => '',
+	'number_of_room' => '',
+	'room_tariff' => '',
+	'room_number' => ''
+];
 if (isset($_GET['e_id'])) {
 	$sql_edit = 'SELECT * FROM `advance_booking` WHERE `sno`="' . $_GET['e_id'] . '"';
 	$result_edit = execute_query($sql_edit);
@@ -21,7 +38,24 @@ if (isset($_GET['e_id'])) {
 	$sql_trans = 'SELECT * FROM `customer_transactions` WHERE `advance_booking_id`="' . $_GET['e_id'] . '"';
 	$result_trans = execute_query($sql_trans);
 	$row_trans = mysqli_fetch_array($result_trans);
+
+
+	$sql = 'SELECT cat_id, number_of_room,room_tariff, room_number FROM advance_booking WHERE sno = "' . $_GET['e_id'] . '"';
+	$result = execute_query($sql);
+
+	if ($row = mysqli_fetch_assoc($result)) {
+		$editData = $row;
+
+		// Convert comma-separated values into an array
+		$editData['cat_id'] = explode(',', $row['cat_id']);
+		$editData['number_of_room'] = explode(',', $row['number_of_room']);
+		$editData['room_tariff'] = explode(',', $row['room_tariff']);
+		$editData['room_number'] = explode(',', $row['room_number']);
+	}
 }
+// echo '<pre style="margin-left:200px;">';
+// print_r($row_edit);
+// echo '</pre>';
 if (isset($_POST['submit'])) {
 	if ($_POST['company_name'] == '' and $_POST['cust_name1'] == '') {
 		$msg .= '<li class="error">Enter Bill To Details.</li>';
@@ -76,37 +110,53 @@ if (isset($_POST['submit'])) {
 			$_POST['advance_for_checkin'] = '';
 			$type = $_POST['purpose'];
 		}
+
+
+
+
+		// print_r($editData['cat_id'] );
 		if ($_POST['edit_sno'] != '') {
 			// Convert category array to a comma-separated string
-			$catArray = isset($_POST['cat']) ? $_POST['cat'] : [];
-			$numberOfRoomArray = isset($_POST['number_of_room']) ? $_POST['number_of_room'] : [];
-			$roomNumberArray = isset($_POST['room_number']) ? $_POST['room_number'] : [];
+			if (isset($_POST['edit_sno'])) {
 
-			$catString = implode(',', $catArray);  // Convert category array to comma-separated string
-			$numberOfRoomString = implode(',', $numberOfRoomArray);  // Convert number of rooms array to comma-separated string
-			$roomNumberString = implode(',', $roomNumberArray);  // Convert number of rooms array to comma-separated string
+				$catArray = isset($_POST['cat']) ? $_POST['cat'] : [];
+				$numberOfRoomArray = isset($_POST['number_of_room']) ? $_POST['number_of_room'] : [];
+				$tariffOfRoomArray = isset($_POST['room_tariff']) ? $_POST['room_tariff'] : [];
+				$roomNumberArray = isset($_POST['room_number']) ? $_POST['room_number'] : [];
 
-			$sql_update = 'UPDATE `advance_booking` SET
-    `cust_id`="' . $_POST['cust_sno'] . '",
-    `financial_year`="' . $year . '",
-    `allotment_date`="' . $_POST['allotment_date'] . '",
-    `check_in`="' . $_POST['check_in'] . '",
-    `check_out`="' . $_POST['check_out'] . '",
-    `edited_by`="' . $_SESSION['username'] . '",
-    `edited_on`= CURRENT_TIMESTAMP,
-    `remarks`="' . $_POST['remarks'] . '",
-    `guest_name`="' . $_POST['cust_name1'] . '",
-    `status`="' . $status . '",
-    `advance_amount`="' . $_POST['advance_amount'] . '",
-    `total_amount`="' . $_POST['total_amount'] . '",
-    `due_amount`="' . $_POST['due_amount'] . '",
-    `purpose`="' . $_POST['purpose'] . '",
-    `advance_for_id`="' . $_POST['advance_for'] . '",
-    `advance_for_checkin_id`="' . $_POST['advance_for_checkin'] . '",
-    `number_of_room`="' . $numberOfRoomString . '",  -- Store comma-separated number_of_room
-    `cat_id`="' . $catString . '",  -- Store comma-separated category IDs
-    `room_number`="' . $roomNumberString . '"
-    WHERE `sno`="' . $_POST['edit_sno'] . '"';
+				// Convert arrays to comma-separated strings
+				$catString = implode(',', $catArray);
+				$numberOfRoomString = implode(',', $numberOfRoomArray);
+				$tariffOfRoomString = implode(',', $tariffOfRoomArray);
+				$roomNumberString = implode(',', $roomNumberArray);
+
+				// Update the database
+				$sql_update = 'UPDATE `advance_booking` SET
+						`cust_id`="' . $_POST['cust_sno'] . '",
+						`financial_year`="' . $year . '",
+						`allotment_date`="' . $_POST['allotment_date'] . '",
+						`check_in`="' . $_POST['check_in'] . '",
+						`check_out`="' . $_POST['check_out'] . '",
+						`edited_by`="' . $_SESSION['username'] . '",
+						`edited_on`= CURRENT_TIMESTAMP,
+						`remarks`="' . $_POST['remarks'] . '",
+						`guest_name`="' . $_POST['cust_name1'] . '",
+						`status`="' . $status . '",
+						`advance_amount`="' . $_POST['advance_amount'] . '",
+						`total_amount`="' . $_POST['total_amount'] . '",
+						`due_amount`="' . $_POST['due_amount'] . '",
+						`purpose`="' . $_POST['purpose'] . '",
+						`kitchen_dining`="' . $_POST['kitchen_dining'] . '",
+						`kitchen_amount`="' . $_POST['kitchen_amount'] . '",
+						`advance_for_id`="' . $_POST['advance_for'] . '",
+						`advance_for_checkin_id`="' . $_POST['advance_for_checkin'] . '",
+						`number_of_room`="' . $numberOfRoomString . '",
+						`cat_id`="' . $catString . '",
+						`room_number`="' . $roomNumberString . '",
+						`room_number`="' . $tariffOfRoomString . '"
+						WHERE `sno`="' . $_POST['edit_sno'] . '"';
+			}
+
 
 			execute_query($sql_update);
 
@@ -124,19 +174,21 @@ if (isset($_POST['submit'])) {
 			// Convert category array to a comma-separated string
 			$catArray = isset($_POST['cat']) ? $_POST['cat'] : [];
 			$numberOfRoomArray = isset($_POST['number_of_room']) ? $_POST['number_of_room'] : [];
+			$tariffOfRoomArray = isset($_POST['room_tariff']) ? $_POST['room_tariff'] : [];
 			$roomNumberArray = isset($_POST['room_number']) ? $_POST['room_number'] : [];
 
 			$catString = implode(',', $catArray);  // Convert category array to comma-separated string
-			$numberOfRoomString = implode(',', $numberOfRoomArray);  // Convert number of rooms array to string
+			$numberOfRoomString = implode(',', $numberOfRoomArray);
+			$tariffOfRoomString = implode(',', $tariffOfRoomArray);
 			$roomNumberString = implode(',', $roomNumberArray);  // Convert room numbers array to string
 
 			// Correcting the SQL query syntax
-			$sql = 'INSERT INTO advance_booking (guest_name, cust_id, financial_year, allotment_date, check_in, check_out, created_by, created_on, remarks, status, advance_amount, total_amount, due_amount, purpose, advance_for_id, advance_for_checkin_id, number_of_room, room_number, cat_id) 
+			$sql = 'INSERT INTO advance_booking (guest_name, cust_id, financial_year, allotment_date, check_in, check_out, created_by, created_on, remarks, status, advance_amount, total_amount, due_amount, purpose, advance_for_id, advance_for_checkin_id, number_of_room, room_number, cat_id,kitchen_dining,kitchen_amount,room_tariff) 
 			VALUES (
 				"' . mysqli_real_escape_string($db, $_POST['cust_name1']) . '", 
 				"' . mysqli_real_escape_string($db, $_POST['cust_sno']) . '", 
 				"' . mysqli_real_escape_string($db, $year) . '", 
-				"' . date("Y-m-d H:i:s") . '", 
+				"' . mysqli_real_escape_string($db, $_POST['allotment_date']) . '",
 				"' . mysqli_real_escape_string($db, $_POST['check_in']) . '", 
 				"' . mysqli_real_escape_string($db, $_POST['check_out']) . '", 
 				"' . mysqli_real_escape_string($db, $_SESSION['username']) . '", 
@@ -151,10 +203,14 @@ if (isset($_POST['submit'])) {
 				"' . mysqli_real_escape_string($db, $_POST['advance_for_checkin']) . '", 
 				"' . mysqli_real_escape_string($db, $numberOfRoomString) . '",  
 				"' . mysqli_real_escape_string($db, $roomNumberString) . '", 
-				"' . mysqli_real_escape_string($db, $catString) . '"
+				"' . mysqli_real_escape_string($db, $catString) . '",
+				"' . mysqli_real_escape_string($db, $_POST['kitchen_dining']) . '", 
+				"' . mysqli_real_escape_string($db, $_POST['kitchen_amount']) . '",
+				"' . mysqli_real_escape_string($db, $tariffOfRoomString) . '"
 			)';
 
 			$result = execute_query($sql);
+			$allot_id = mysqli_insert_id($db);
 			$sql = "select * from advance_booking order by sno desc limit 1";
 			$result = execute_query($sql);
 			$old_data1 = mysqli_fetch_assoc($result);
@@ -163,8 +219,44 @@ if (isset($_POST['submit'])) {
 				$sql = 'INSERT INTO customer_transactions (cust_id , advance_booking_id , type , timestamp, amount, mop, created_by , created_on , remarks , invoice_no , financial_year , payment_for) VALUES ("' . $_POST['cust_sno'] . '", "' . $alot_id . '" , "ADVANCE_AMT" , "' . date('Y-m-d') . '"  , "' . $_POST['advance_amount'] . '" , "' . $_POST['mop'] . '", "' . $_SESSION['username'] . '" ,CURRENT_TIMESTAMP, "' . $_POST['remarks'] . '","","' . $year . '" , "' . $type . '")';
 				$result = execute_query($sql);
 			}
+			
+			// Insert attachments into the 'attachment' table
+			if (!empty($_FILES['file_path']['name'][0])) {
+				$uploadDir = "uploads/"; // Your actual upload directory
+			
+				foreach ($_FILES['file_path']['name'] as $key => $filename) {
+					$fileTmpPath = $_FILES['file_path']['tmp_name'][$key];
+					$fileExt = pathinfo($filename, PATHINFO_EXTENSION); // Get file extension
+					$description = mysqli_real_escape_string($db, $_POST['description'][$key]);
+			
+					// First, insert a record into the `attachment` table with a placeholder for file_path
+					$sql = 'INSERT INTO attachment (advance_id, file_path, description) 
+							VALUES ("' . $allot_id . '", "", "' . $description . '")';
+					execute_query($sql);
+			
+					// Now, get the `sno` (ID) of the inserted record
+					$attachment_id = mysqli_insert_id($db);
+			
+					// Define the new file name using sno.extension
+					$newFileName = $attachment_id . "." . $fileExt;
+					$filePath = $uploadDir . $newFileName;
+			
+					// Move the uploaded file to the new file path
+					if (move_uploaded_file($fileTmpPath, $filePath)) {
+						// Update the `attachment` table with the correct file path
+						$updateSql = 'UPDATE attachment SET file_path = "' . mysqli_real_escape_string($db, $filePath) . '" WHERE sno = "' . $attachment_id . '"';
+						execute_query($updateSql);
+					}
+				}
+			}
+			
+
+
 			$msg .= '<li class="error">Booking Successfully</li>';
 			$msg .= '<li class="error"><a href="advance_print.php?print_id=' . $alot_id . '" target="_blank">Print Receipt</a></li>';
+
+
+
 		}
 	}
 
@@ -630,7 +722,11 @@ if (isset($_GET['del'])) {
 					echo $cust_details['id_2'];
 				} ?>" class="field text medium" maxlength="255" tabindex="<?php echo $tab++; ?>" type="text" /></td>
 				<td>Booking Date : </td>
-				<td><?php echo date("d-m-y"); ?></td>
+				<td><input name="allotment_date" type="text" value="<?php if (isset($old_data['allotment_date'])) {
+					echo $old_data['allotment_date'];
+				} else if (isset($_GET['e_id'])) {
+					echo $row_edit['allotment_date'];
+				} ?>" class="field text medium" tabindex="<?php echo $tab++; ?>" id="allotment_date" /></td>
 				<!--<td>Plan</td>
 					<td>
 						<select name="plan">
@@ -653,12 +749,11 @@ if (isset($_GET['del'])) {
 			</tr>
 			<tr>
 				<td>CheckIn Date : </td>
-				<td><input name="check_in" type="text"
-						onchange="fetchRemainingRooms(document.getElementById('cat').value)" value="<?php if (isset($old_data['check_in'])) {
-							echo $old_data['check_in'];
-						} else if (isset($_GET['e_id'])) {
-							echo $row_edit['check_in'];
-						} ?>" class="field text medium" tabindex="<?php echo $tab++; ?>" id="check_in" /></td>
+				<td><input name="check_in" type="text" value="<?php if (isset($old_data['check_in'])) {
+					echo $old_data['check_in'];
+				} else if (isset($_GET['e_id'])) {
+					echo $row_edit['check_in'];
+				} ?>" class="field text medium" tabindex="<?php echo $tab++; ?> " id="check_in" /></td>
 				<td>CheckOut Date : </td>
 
 				<td><input name="check_out" type="text" value="<?php if (isset($old_data['check_out'])) {
@@ -768,6 +863,16 @@ if (isset($_GET['del'])) {
 					</select>
 				</td>
 			</tr>
+			<tr>
+				<td>Kitchen Dining</td>
+				<td><input type="text" name="kitchen_dining" id="kitchen_dining" value="<?php if (isset($_GET['e_id'])) {
+					echo $row_edit['kitchen_dining'];
+				} ?>"></td>
+				<td>Amount</td>
+				<td><input type="text" name="kitchen_amount" id="kitchen_amount" value="<?php if (isset($_GET['e_id'])) {
+					echo $row_edit['kitchen_amount'];
+				} ?>"></td>
+			</tr>
 			<tr id="advance_item" style="display: none;">
 				<?php
 				if (isset($_GET['e_id'])) {
@@ -834,10 +939,12 @@ if (isset($_GET['del'])) {
 					</select>
 				</td>
 				<td>Total Amount : </td>
-				<td><input id="total_amount" name="total_amount" value="<?php if (isset($_GET['e_id'])) {
-					echo $row_edit['total_amount'];
-				} ?>" class="field text medium" maxlength="255" tabindex="<?php echo $tab++; ?>" type="text"
-						onBlur="calc_due(this.value);" /></td>
+				<td>
+					<input id="total_amount" name="total_amount"
+						value="<?php echo isset($_GET['e_id']) ? htmlspecialchars($row_edit['total_amount']) : ''; ?>"
+						class="field text medium" maxlength="255" type="text" readonly />
+				</td>
+
 			</tr>
 			<tr>
 				<td>Advance Amount : </td>
@@ -851,53 +958,90 @@ if (isset($_GET['del'])) {
 				} ?>" class="field text medium" maxlength="255" tabindex="<?php echo $tab++; ?>" type="text"
 						onBlur="calc_due(this.value);" /></td>
 			</tr>
+			<table id="attachmentTable">
+    <tr>
+        <td colspan="4">
+            <button type="button" class="btn btn-primary" onclick="addAttachmentRow()">Add Attachment +</button>
+        </td>
+    </tr>
 
+    <?php if (!empty($attachments)) { 
+        foreach ($attachments as $key => $attachment) { ?>
+        <tr>
+            <td>Upload File</td>
+            <td>
+                <input type="file" name="file_path[]" class="file_input">
+                <input type="hidden" name="existing_file[]" value="<?php echo $attachment['file_path']; ?>">
+                <span><?php echo basename($attachment['file_path']); ?></span>
+            </td>
+            <td>Description</td>
+            <td>
+                <input type="text" name="description[]" value="<?php echo htmlspecialchars($attachment['description']); ?>">
+                <button type="button" class="btn btn-danger" onclick="removeRow(this)">Remove</button>
+            </td>
+        </tr>
+    <?php } } ?>
+       
+</table>
 			<table>
 				<tr style="background:#000; color:#FFF;">
-					<th style="width: 365px;">Room Category</th>
+					<th style="width: 310px;">Room Category</th>
 					<th style="width: 200px;">Remains Room</th>
 					<th>Number of Room</th>
+					<th>Room Tariff</th>
 					<th>Room Number</th>
 					<th>Action</th>
 				</tr>
 			</table>
 			<table id="roomTable">
-				<tr>
+				<?php
+				// Ensure at least one row is present for normal form filling
+				$rowCount = isset($editData['cat_id']) && is_array($editData['cat_id']) ? count($editData['cat_id']) : 1;
 
-					<td style="width: 365px;">
-						<select id="cat" name="cat[]" class="field select medium" onchange="fetchRemainingRooms(this)">
-							<option value="">-- Select Room Category --</option>
-							<?php
-							// Fetch categories from the database
-							$query = "SELECT sno, room_type FROM category";
-							$result = execute_query($query);
+				for ($i = 0; $i < $rowCount; $i++) { ?>
+					<tr>
+						<td style="width: 365px;">
+							<select name="cat[]" class="field select medium" onchange="fetchRemainingRooms(this)"
+								data-mode="<?php echo isset($_GET['e_id']) ? 'edit' : 'normal'; ?>">
+								<option value="">-- Select Room Category --</option>
+								<?php
+								$query = "SELECT sno, room_type FROM category";
+								$result = execute_query($query);
 
-							while ($row = mysqli_fetch_assoc($result)) {
-								$roomsno = htmlspecialchars($row['sno']); // Category ID
-								$roomType = htmlspecialchars($row['room_type']); // Room Type
-								echo "<option value='$roomsno'>$roomType</option>";
-							}
-							?>
-						</select>
-
-					</td>
-					<td style="width: 200px;">
-						<input type="text" value="" name="rem_room[]" class="rem_room"
-							style="width:150px;margin-left: 20px;background:yellow;" disabled>
-					</td>
-					<td>
-						<input name="number_of_room[]" class="field text medium number_of_room" maxlength="200"
-							type="text" style="width:250px;" />
-					</td>
-					<td><input id="room_number" name="room_number[]" value="<?php if (isset($_GET['e_id'])) {
-						echo $row_edit['room_number'];
-					} ?>" class="field text medium" maxlength="255" tabindex="<?php echo $tab++; ?>" type="text"
-							style="width:210px;" /></td>
-					<td style="width: 120px;">
-						<button class="btn btn-success" type="button" onclick="addRow()">Add</button>
-					</td>
-				</tr>
+								while ($row = mysqli_fetch_assoc($result)) {
+									$selected = (isset($editData['cat_id'][$i]) && $row['sno'] == $editData['cat_id'][$i]) ? 'selected' : '';
+									echo "<option value='{$row['sno']}' $selected>{$row['room_type']}</option>";
+								}
+								?>
+							</select>
+						</td>
+						<td style="width: 180px;">
+							<input type="text" name="rem_room[]" class="rem_room"
+								style="width:150px;margin-left: 20px;background:yellow;" disabled>
+						</td>
+						<td>
+							<input name="number_of_room[]" class="field text medium number_of_room" maxlength="200"
+								type="text" style="width:220px;"
+								value="<?php echo isset($editData['number_of_room'][$i]) ? htmlspecialchars($editData['number_of_room'][$i]) : ''; ?>" />
+						</td>
+						<td>
+							<input name="room_tariff[]" class="field text medium" maxlength="255" type="text"
+								style="width:170px;"
+								value="<?php echo isset($editData['room_tariff'][$i]) ? htmlspecialchars($editData['room_tariff'][$i]) : ''; ?>" />
+						</td>
+						<td>
+							<input name="room_number[]" class="field text medium" maxlength="255" type="text"
+								style="width:200px;"
+								value="<?php echo isset($editData['room_number'][$i]) ? htmlspecialchars($editData['room_number'][$i]) : ''; ?>" />
+						</td>
+						<td style="width: 150px;">
+							<button class="btn btn-success" type="button" onclick="addRow()">Add</button>
+						</td>
+					</tr>
+				<?php } ?>
 			</table>
+
+
 
 			<?php
 			if (isset($_GET['aid'])) {
@@ -953,6 +1097,8 @@ if (isset($_GET['del'])) {
 			<th>Number Of Room</th>
 			<th>Room Number</th>
 			<th>Booking Date</th>
+			<th>Kitchen Dining</th>
+			<th>Amount</th>
 			<!-- <th></th>
 			<th></th> -->
 
@@ -996,15 +1142,17 @@ if (isset($_GET['del'])) {
 				echo '<td>' . str_replace(',', '<br>', $roomTypeList) . '</td>
       <td>' . str_replace(',', '<br>', $row['number_of_room']) . '</td>
       <td>' . str_replace(',', '<br>', $row['room_number']) . '</td>';
-		
-		echo'<td>' . date("d-m-Y,h-i A", strtotime($row['allotment_date'])) . '</td>';
-	// 			if ($row['purpose'] == "room_rent") {
-	// 				echo '<td><a href="allotment.php?check_in=' . $row['sno'] . '">Allot Room</a></td>';
-	// 			} elseif ($row['purpose'] == "banquet_rent") {
-	// 				echo '<td><a href="banquet_hall.php?allot=' . $row['sno'] . '">Allot Banquet</a></td>';
-	// 			}
-	// 			echo '<td><a href="advance_booking.php?e_id=' . $row['sno'] . '" onclick="return confirm(\'Are you sure?\');">Edit</a></td>
-	// </tr>';
+
+				echo '<td>' . date("d-m-Y,h-i A", strtotime($row['allotment_date'])) . '</td>';
+				echo '<td>' . $row['kitchen_dining'] . '</td>';
+				echo '<td>' . $row['kitchen_amount'] . '</td>';
+				// 			if ($row['purpose'] == "room_rent") {
+				// 				echo '<td><a href="allotment.php?check_in=' . $row['sno'] . '">Allot Room</a></td>';
+				// 			} elseif ($row['purpose'] == "banquet_rent") {
+				// 				echo '<td><a href="banquet_hall.php?allot=' . $row['sno'] . '">Allot Banquet</a></td>';
+				// 			}
+				// 			echo '<td><a href="advance_booking.php?e_id=' . $row['sno'] . '" onclick="return confirm(\'Are you sure?\');">Edit</a></td>
+				// </tr>';
 			}
 		}
 		?>
@@ -1029,30 +1177,31 @@ if (isset($_GET['del'])) {
 	$('#check_in').datetimepicker({
 		step: 15,
 		format: 'Y-m-d H:i',
-		value: '<?php
+		value: "<?php
 		if (isset($_POST['date_from'])) {
 			echo $_POST['date_from'];
-		} elseif (isset($_GET['e_id'])) {
-			echo $row_edit['allotment_date'];
+		} elseif (isset($_GET['e_id']) && !empty($row_edit['check_in'])) {
+			echo date("Y-m-d H:i", strtotime($row_edit['check_in']));
 		} else {
 			echo date("Y-m-d H:i");
 		}
-		?>',
+		?>",
 	});
 
 	$('#check_out').datetimepicker({
 		step: 15,
 		format: 'Y-m-d H:i',
-		value: '<?php
+		value: "<?php
 		if (isset($_POST['date_from'])) {
 			echo $_POST['date_from'];
-		} elseif (isset($_GET['e_id'])) {
-			echo $row_edit['allotment_date'];
+		} elseif (isset($_GET['e_id']) && !empty($row_edit['check_out'])) {
+			echo date("Y-m-d H:i", strtotime($row_edit['check_out']));
 		} else {
 			echo date("Y-m-d H:i");
 		}
-		?>',
+		?>",
 	});
+
 
 	$('#exit_date').datetimepicker({
 		step: 15,
@@ -1081,11 +1230,21 @@ if (isset($_GET['del'])) {
 
 
 <script>
+	document.addEventListener("DOMContentLoaded", function () {
+		document.querySelectorAll("select[name='cat[]']").forEach(function (selectElement) {
+			var mode = selectElement.getAttribute("data-mode"); // Get mode (edit or normal)
+
+			if (mode === "edit" && selectElement.value !== "") {
+				fetchRemainingRooms(selectElement); // Auto-load for edit mode
+			}
+		});
+	});
+
 	function fetchRemainingRooms(selectElement) {
 		var roomsno = selectElement.value;
 		var row = selectElement.closest('tr'); // Get the parent row
 		var remRoomInput = row.querySelector(".rem_room"); // Find the rem_room input in this row
-		var checkInDate = document.getElementById("check_in").value; // Get the check-in date
+		var checkInDate = document.getElementById("check_in") ? document.getElementById("check_in").value : ''; // Get the check-in date
 
 		if (roomsno === "" || checkInDate === "") {
 			remRoomInput.value = "";
@@ -1107,11 +1266,13 @@ if (isset($_GET['del'])) {
 		var table = document.getElementById("roomTable");
 		var newRow = table.rows[0].cloneNode(true); // Clone first row
 
-		// Reset values
+		// Reset values for new row
 		newRow.querySelector("select").value = "";
 		newRow.querySelector(".rem_room").value = "";
 		newRow.querySelector("input[name='number_of_room[]']").value = "";
 		newRow.querySelector("input[name='room_number[]']").value = "";
+		newRow.querySelector("input[name='room_tariff[]']").value = "";
+
 		// Change Add button to Remove
 		var btn = newRow.querySelector("button");
 		btn.innerText = "Remove";
@@ -1128,6 +1289,7 @@ if (isset($_GET['del'])) {
 		table.appendChild(newRow);
 	}
 
+
 	function removeRow(button) {
 		var row = button.closest("tr");
 		var table = document.getElementById("roomTable");
@@ -1141,22 +1303,68 @@ if (isset($_GET['del'])) {
 </script>
 
 <script>
-    // Add event listener to validate number of rooms
-    document.addEventListener("input", function (event) {
-        if (event.target.classList.contains("number_of_room")) {
-            var row = event.target.closest('tr'); // Get the parent row
-            var remRoomInput = row.querySelector(".rem_room"); // Get remaining rooms input
-            var remRooms = parseInt(remRoomInput.value) || 0; // Get remaining rooms as an integer
-            var enteredRooms = parseInt(event.target.value) || 0; // Get entered rooms as an integer
-            
-            if (enteredRooms > remRooms) {
-                alert("Number of rooms cannot be greater than remaining rooms.");
-                event.target.value = ""; // Clear input value
-            }
-        }
-    });
+	// Add event listener to validate number of rooms
+	document.addEventListener("input", function (event) {
+		if (event.target.classList.contains("number_of_room")) {
+			var row = event.target.closest('tr'); // Get the parent row
+			var remRoomInput = row.querySelector(".rem_room"); // Get remaining rooms input
+			var remRooms = parseInt(remRoomInput.value) || 0; // Get remaining rooms as an integer
+			var enteredRooms = parseInt(event.target.value) || 0; // Get entered rooms as an integer
+
+			if (enteredRooms > remRooms) {
+				alert("Number of rooms cannot be greater than remaining rooms.");
+				event.target.value = ""; // Clear input value
+			}
+		}
+	});
 </script>
 
+<script>
+	function calculateTotalAmount() {
+		let totalAmount = 0;
+		let rows = document.querySelectorAll("#roomTable tr");
+
+		rows.forEach(row => {
+			let numberOfRooms = row.querySelector(".number_of_room") ? parseFloat(row.querySelector(".number_of_room").value) || 0 : 0;
+			let roomTariff = row.querySelector("[name='room_tariff[]']") ? parseFloat(row.querySelector("[name='room_tariff[]']").value) || 0 : 0;
+
+			let rowTotal = numberOfRooms * roomTariff;
+			totalAmount += rowTotal;
+		});
+
+		// Update total amount field
+		document.getElementById("total_amount").value = totalAmount.toFixed(2);
+	}
+
+	// Attach event listener to update total on input change
+	document.addEventListener("input", function (event) {
+		if (event.target.matches(".number_of_room") || event.target.matches("[name='room_tariff[]']")) {
+			calculateTotalAmount();
+		}
+	});
+</script>
+
+
+<script>
+	function addAttachmentRow() {
+    let table = document.getElementById("attachmentTable");
+    let row = document.createElement("tr");
+    row.innerHTML = `
+        <td>Upload File</td>
+        <td><input type="file" name="file_path[]" class="file_input"></td>
+        <td>Description</td>
+        <td>
+            <input type="text" name="description[]" value="">
+            <button type="button" class="btn btn-danger" onclick="removeRow(this)">Remove</button>
+        </td>
+    `;
+    table.appendChild(row);
+}
+
+function removeRow(button) {
+    button.closest("tr").remove();
+}
+</script>
 <?php
 navigation('');
 page_footer();

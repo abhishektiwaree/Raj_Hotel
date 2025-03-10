@@ -90,6 +90,9 @@ WHERE customer_transactions.sno=$uncancel_id";
 	</div>
 </div>-->
 <style>
+
+
+
 	.table-like {
     display: flex;
     flex-direction: column;
@@ -315,6 +318,8 @@ WHERE customer_transactions.sno=$uncancel_id";
 			<th style="background:#00888d; color:#FFF;">Comapny Name</th>
 			<th style="background:#00888d; color:#FFF;">Guest Name</th>
 			<th style="background:#00888d; color:#FFF;">Mobile</th>
+			<th style="background:#00888d; color:#FFF;">Kitchen Dining</th>
+			<th style="background:#00888d; color:#FFF;">Amount</th>
 			<!-- <th  style="background:#00888d; color:#FFF;">Date Of Entry</th> -->
 			<th style="background:#00888d; color:#FFF;">Type</th>
 			<th style="background:#00888d; color:#FFF;">MOP</th>
@@ -324,6 +329,7 @@ WHERE customer_transactions.sno=$uncancel_id";
 			<th style="background:#00888d; color:#FFF;">Booking Date</th>
 			<th style="background:#00888d; color:#FFF;">Check In Date</th>
 			<th style="background:#00888d; color:#FFF;">Check Out Date</th>
+			<th style="background:#00888d; color:#FFF;">Attachment</th>
 			<th style="background:#00888d; color:#FFF;">Room Category Details</th>
 			<!-- <th  style="background:#00888d; color:#FFF;">No. Of Rooms</th>
 					<th  style="background:#00888d; color:#FFF;">Room Number</th> -->
@@ -333,7 +339,9 @@ WHERE customer_transactions.sno=$uncancel_id";
 			<th style="background:#00888d; color:#FFF;" class="no-print">Cancel</th>
 		</tr>
 		<?php
+		$total_room=0;
 		$sql_mop = '';
+		$attachments = [];
 		$sql = 'select * from advance_booking where 1=1 ';
 		if (isset($_POST['submit_form'])) {
 			if ($_POST['date_type'] == 'booking_wise') {
@@ -381,7 +389,10 @@ WHERE customer_transactions.sno=$uncancel_id";
 			$tot = 0;
 			$tot_total = 0;
 			$tot_due = 0;
+
+
 			foreach ($result as $row) {
+
 				$sql_mop = 'SELECT * FROM `customer_transactions` WHERE `advance_booking_id`="' . $row['sno'] . '" ';
 				if (isset($_POST['submit_form'])) {
 					if ($_POST['mop'] != '') {
@@ -422,8 +433,9 @@ WHERE customer_transactions.sno=$uncancel_id";
 					<td style="background:' . $col . '">' . $row['sno'] . '</td>
 					<td style="background:' . $col . '">' . $details['company_name'] . '</td>
 					<td style="background:' . $col . '">' . $row['guest_name'] . '</td>
-					<td style="background:' . $col . '">' . $details['mobile'] . '</td>';
-
+					<td style="background:' . $col . '">' . $details['mobile'] . '</td>
+					<td style="background:' . $col . '">' . $row['kitchen_dining'] . '</td>
+					<td style="background:' . $col . '">' . $row['kitchen_amount'] . '</td>';
 
 				if ($row['purpose'] == "room_rent") {
 					echo '<td style="background:' . $col . '">Room Booking</td>';
@@ -460,6 +472,14 @@ WHERE customer_transactions.sno=$uncancel_id";
 				$sql_mop = 'SELECT * FROM `customer_transactions` WHERE `advance_booking_id`="' . $row['sno'] . '" ';
 				$result_mop = execute_query($sql_mop);
 				$row_mop = mysqli_fetch_assoc($result_mop);
+
+				$e_id = mysqli_real_escape_string($db, $row['sno']);
+				$sql1 = "SELECT * FROM attachment WHERE advance_id = '$e_id'";
+				$result1 = execute_query($sql1);
+				while ($row1 = mysqli_fetch_assoc($result1)) {
+					$attachments[] = $row1; // Store attachments in an array
+				}
+				$attachmentsJson = json_encode($attachments);
 				?>
 				<td style="background:<?php echo $col ?>" class="editable" id="row_<?php echo $row_mop['sno']; ?>">
 					<?php if ($row_mop['mop'] == "bank_transfer") {
@@ -484,6 +504,11 @@ WHERE customer_transactions.sno=$uncancel_id";
 				echo '<td style="background:' . $col . '">' . date('d-m-Y h:i:s', strtotime($row['allotment_date'])) . '</td>';
 				echo '<td style="background:' . $col . '">' . date('d-m-Y h:i:s', strtotime($row['check_in'])) . '</td>';
 				echo '<td style="background:' . $col . '">' . date('d-m-Y h:i:s', strtotime($row['check_out'])) . '</td>';
+				echo '<td style="background: ' . $col . '">
+    <button class="btn btn-link" style="color: #0D6EFD;" onclick="showAttachments(' . htmlspecialchars($attachmentsJson, ENT_QUOTES, "UTF-8") . ')">View</button>
+</td>';
+
+
 				echo '<td style="background:' . $col . '">
         <button class="btn btn-link" style="color: #0D6EFD;" onclick="showPopup(\'' . 
             htmlspecialchars($roomTypeList) . '\', \'' . 
@@ -492,7 +517,18 @@ WHERE customer_transactions.sno=$uncancel_id";
             View
         </button>
       </td>';
+	  $room_numbers = explode(',', $row['number_of_room']); // Convert "1,2,3" → ['1', '2', '3']
+	  $total_room += array_sum($room_numbers);
  ?>
+ <!-- Hidden Modal for Viewing Attachments -->
+<div id="attachmentModal" class="modal">
+    <div class="modal-content">
+        <span class="close" onclick="closeModal()">&times;</span>
+        <h3>Attachment Details</h3>
+        <p id="attachmentDescription"></p>
+        <iframe id="attachmentFrame" style="width:100%; height:400px;" frameborder="0"></iframe>
+    </div>
+</div>
 				<!-- Bootstrap Modal -->
 				<div class="modal fade" id="infoModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog">
@@ -545,13 +581,20 @@ WHERE customer_transactions.sno=$uncancel_id";
 				
 				echo '</tr>';
 			}
-
+			$sql = "SELECT SUM(remarks) AS total_remarks FROM category";
+$result = $db->query($sql);
+$row = $result->fetch_assoc();
+$totalRoom = $row['total_remarks'];
 			echo '<tr style="background:#00888d; color:#FFF;">
-				    <th style="background:#00888d; color:#FFF;" colspan="8">Total :</th>
+				    <th style="background:#00888d; color:#FFF;" colspan="7">Total :</th>
 				    <th style="background:#00888d; color:#FFF;">' . $tot_total . '</th>
 				    <th style="background:#00888d; color:#FFF;">' . $tot . '</th>
 				    <th style="background:#00888d; color:#FFF;">' . $tot_due . '</th>
-				    <th style="background:#00888d; color:#FFF;" colspan="9">&nbsp;</th>
+				    <th style="background:#00888d; color:#FFF;"></th>
+				    <th style="background:#00888d; color:#FFF;"></th>
+				    <th style="background:#00888d; color:#FFF;"></th>
+				    <th style="background:#00888d; color:#FFF;">Rooms: ' . $total_room . '</th>
+				    <th style="background:#00888d; color:#FFF;" colspan="6">Available Rooms: ' . $totalRoom-$total_room . '</th>
 				</tr>';
 		}
 		?>
@@ -690,7 +733,30 @@ WHERE customer_transactions.sno=$uncancel_id";
         modal.show();
     }
 </script>
+<script>
+function showAttachments(attachments) {
+    let content = "<h3>Attachments</h3><ul>";
 
+    if (attachments.length > 0) {
+        attachments.forEach(att => {
+            content += `<li>
+                <a href="${att.file_path}" target="_blank">${att.file_path}</a> - ${att.description}
+            </li>`;
+        });
+    } else {
+        content += "<li>No attachments available</li>";
+    }
+    content += "</ul>";
+
+    // Show in a modal (you can use Bootstrap, SweetAlert, or a custom popup)
+    let modal = document.createElement("div");
+    modal.innerHTML = `<div style="position:fixed; top:20%; left:30%; background:#fff; padding:20px; border:1px solid #ccc; z-index:1000;">
+                        ${content}
+                        <button onclick="this.parentElement.remove()">Close</button>
+                      </div>`;
+    document.body.appendChild(modal);
+}
+</script>
 <?php
 navigation('');
 page_footer();
