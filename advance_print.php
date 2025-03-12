@@ -62,7 +62,7 @@ $tabl = mysqli_fetch_assoc(execute_query($sql));
 $tableno = $tabl['rate'];
 
 
-$sql_invoice = 'SELECT * FROM advance_booking 
+echo $sql_invoice = 'SELECT * FROM advance_booking 
 JOIN category ON FIND_IN_SET(category.sno, advance_booking.cat_id) 
 WHERE advance_booking.sno = "'.$_GET['print_id'].'"';
 $invoice=mysqli_fetch_assoc(execute_query($sql_invoice));
@@ -226,6 +226,7 @@ $style = 'thermal';
             <tr>
                 <th>Room Category</th>
                 <th>No. Of Rooms</th>
+                <th>Room Tariff</th>
                 <th>Room Number</th>
             </tr>
             <tr>
@@ -240,6 +241,10 @@ $style = 'thermal';
                 <?php if($invoice['number_of_room'] != ''){ ?>
                 
                 <td> <?php echo str_replace(',', '<br>', $invoice['number_of_room']); ?></td>
+                <?php } ?>
+                <?php if($invoice['room_tariff'] != ''){ ?>
+                
+                <td> <?php echo str_replace(',', '<br>', $invoice['room_tariff']); ?></td>
                 <?php } ?>
                 <?php if($invoice['room_number'] != ''){ ?>
                 

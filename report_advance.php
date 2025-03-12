@@ -524,7 +524,7 @@ WHERE customer_transactions.sno=$uncancel_id";
 <div id="attachmentModal" class="modal">
     <div class="modal-content">
         <span class="close" onclick="closeModal()">&times;</span>
-        <h3>Attachment Details</h3>
+        <h3 style="background:#00888D">Attachment Details</h3>
         <p id="attachmentDescription"></p>
         <iframe id="attachmentFrame" style="width:100%; height:400px;" frameborder="0"></iframe>
     </div>
@@ -586,7 +586,7 @@ $result = $db->query($sql);
 $row = $result->fetch_assoc();
 $totalRoom = $row['total_remarks'];
 			echo '<tr style="background:#00888d; color:#FFF;">
-				    <th style="background:#00888d; color:#FFF;" colspan="7">Total :</th>
+				    <th style="background:#00888d; color:#FFF;" colspan="9">Total :</th>
 				    <th style="background:#00888d; color:#FFF;">' . $tot_total . '</th>
 				    <th style="background:#00888d; color:#FFF;">' . $tot . '</th>
 				    <th style="background:#00888d; color:#FFF;">' . $tot_due . '</th>
@@ -594,7 +594,7 @@ $totalRoom = $row['total_remarks'];
 				    <th style="background:#00888d; color:#FFF;"></th>
 				    <th style="background:#00888d; color:#FFF;"></th>
 				    <th style="background:#00888d; color:#FFF;">Rooms: ' . $total_room . '</th>
-				    <th style="background:#00888d; color:#FFF;" colspan="6">Available Rooms: ' . $totalRoom-$total_room . '</th>
+				    <th style="background:#00888d; color:#FFF;" colspan="4">Available Rooms: ' . $totalRoom-$total_room . '</th>
 				</tr>';
 		}
 		?>
@@ -735,27 +735,59 @@ $totalRoom = $row['total_remarks'];
 </script>
 <script>
 function showAttachments(attachments) {
-    let content = "<h3>Attachments</h3><ul>";
+    let content = '<h3 style="background:#00888D; color:white; padding:10px; border-radius:5px;">Attachments</h3><ul style="list-style:none; padding:0;">';
 
     if (attachments.length > 0) {
         attachments.forEach(att => {
-            content += `<li>
-                <a href="${att.file_path}" target="_blank">${att.file_path}</a> - ${att.description}
+            content += `<li style="margin:5px 0; padding:5px; border-bottom:1px solid #ccc;">
+                <a href="${att.file_path}" target="_blank" style="color:#00888D; text-decoration:none; font-weight:bold;">${att.file_path}</a> - ${att.description}
             </li>`;
         });
     } else {
-        content += "<li>No attachments available</li>";
+        content += "<li style='padding:10px;'>No attachments available</li>";
     }
     content += "</ul>";
 
-    // Show in a modal (you can use Bootstrap, SweetAlert, or a custom popup)
+    // Create overlay
+    let overlay = document.createElement("div");
+    overlay.id = "modalOverlay";
+    overlay.style.position = "fixed";
+    overlay.style.top = "0";
+    overlay.style.left = "0";
+    overlay.style.width = "100%";
+    overlay.style.height = "100%";
+    overlay.style.background = "rgba(0, 0, 0, 0.5)"; // Semi-transparent black
+    overlay.style.zIndex = "999"; // Behind the modal
+
+    // Create modal
     let modal = document.createElement("div");
-    modal.innerHTML = `<div style="position:fixed; top:20%; left:30%; background:#fff; padding:20px; border:1px solid #ccc; z-index:1000;">
-                        ${content}
-                        <button onclick="this.parentElement.remove()">Close</button>
-                      </div>`;
+    modal.style.position = "fixed";
+    modal.style.top = "20%";
+    modal.style.left = "35%";
+    modal.style.width = "30%";
+    modal.style.borderRadius = "10px";
+    modal.style.background = "#eddfdf";
+    modal.style.padding = "20px";
+    modal.style.border = "1px solid #ccc";
+    modal.style.zIndex = "1000"; // Above the overlay
+    modal.style.boxShadow = "0px 4px 8px rgba(0, 0, 0, 0.2)";
+
+    modal.innerHTML = `
+        ${content}
+        <button class="btn btn-danger" onclick="closeModal()" style="display:block; width:100%; margin-top:10px; padding:10px; border:none; background:#d9534f; color:white; cursor:pointer; border-radius:5px;">Close</button>
+    `;
+
+    // Append elements to the body
+    document.body.appendChild(overlay);
     document.body.appendChild(modal);
+
+    // Function to close modal and remove overlay
+    window.closeModal = function () {
+        modal.remove();
+        overlay.remove();
+    };
 }
+
 </script>
 <?php
 navigation('');

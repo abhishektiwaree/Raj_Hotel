@@ -153,7 +153,7 @@ if (isset($_POST['submit'])) {
 						`number_of_room`="' . $numberOfRoomString . '",
 						`cat_id`="' . $catString . '",
 						`room_number`="' . $roomNumberString . '",
-						`room_number`="' . $tariffOfRoomString . '"
+						`room_tariff`="' . $tariffOfRoomString . '"
 						WHERE `sno`="' . $_POST['edit_sno'] . '"';
 			}
 
