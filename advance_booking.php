@@ -864,11 +864,11 @@ if (isset($_GET['del'])) {
 				</td>
 			</tr>
 			<tr>
-				<td>Kitchen Dining</td>
+				<td>Meal Plan :</td>
 				<td><input type="text" name="kitchen_dining" id="kitchen_dining" value="<?php if (isset($_GET['e_id'])) {
 					echo $row_edit['kitchen_dining'];
 				} ?>"></td>
-				<td>Amount</td>
+				<td>Amount :</td>
 				<td><input type="text" name="kitchen_amount" id="kitchen_amount" value="<?php if (isset($_GET['e_id'])) {
 					echo $row_edit['kitchen_amount'];
 				} ?>"></td>
@@ -1084,79 +1084,7 @@ if (isset($_GET['del'])) {
 
 		</table>
 	</form>
-	<table width="100%">
-		<tr style="background:#000; color:#FFF;">
-			<th>S.No.</th>
-			<th>Guest Name</th>
-			<th>Company Name</th>
-			<th>Purpose</th>
-			<th>Total Amount</th>
-			<th>Advance Amount</th>
-			<th>Due Amount</th>
-			<th>Room Category</th>
-			<th>Number Of Room</th>
-			<th>Room Number</th>
-			<th>Booking Date</th>
-			<th>Kitchen Dining</th>
-			<th>Amount</th>
-			<!-- <th></th>
-			<th></th> -->
-
-		</tr>
-		<?php
-		$sql = 'select * from advance_booking where status="0" and purpose!="advance_for"';
-		$result = execute_query($sql);
-
-		while ($row = mysqli_fetch_array($result)) {
-
-			$i = 1;
-			foreach ($result as $row) {
-
-				$catIds = explode(',', $row['cat_id']); // Convert cat_id string to an array
-				$roomTypes = [];
-
-				foreach ($catIds as $catId) {
-					$catQuery = 'SELECT room_type FROM category WHERE sno="' . trim($catId) . '"';
-					$catRes = execute_query($catQuery);
-
-					if ($catRow = mysqli_fetch_assoc($catRes)) {
-						$roomTypes[] = $catRow['room_type']; // Store room type in array
-					}
-				}
-				$roomTypeList = implode(', ', $roomTypes);
-				if ($i % 2 == 0) {
-					$col = '#CCC';
-				} else {
-					$col = '#EEE';
-				}
-				echo '<tr style="background:' . $col . '; text-align:center;">
-		<td>' . $i++ . '</td>
-		<td>' . $row['guest_name'] . '</td>
-		<td>' . get_company_name($row['cust_id']) . '</td>';
-				if ($row['purpose'] == "room_rent") {
-					echo '<td>Room Booking</td>';
-				} elseif ($row['purpose'] == "banquet_rent") {
-					echo '<td>Banquet Booking</td>';
-				}
-				echo '<td>' . $row['total_amount'] . '</td><td>' . $row['advance_amount'] . '</td><td>' . $row['due_amount'] . '</td>';
-				echo '<td>' . str_replace(',', '<br>', $roomTypeList) . '</td>
-      <td>' . str_replace(',', '<br>', $row['number_of_room']) . '</td>
-      <td>' . str_replace(',', '<br>', $row['room_number']) . '</td>';
-
-				echo '<td>' . date("d-m-Y,h-i A", strtotime($row['allotment_date'])) . '</td>';
-				echo '<td>' . $row['kitchen_dining'] . '</td>';
-				echo '<td>' . $row['kitchen_amount'] . '</td>';
-				// 			if ($row['purpose'] == "room_rent") {
-				// 				echo '<td><a href="allotment.php?check_in=' . $row['sno'] . '">Allot Room</a></td>';
-				// 			} elseif ($row['purpose'] == "banquet_rent") {
-				// 				echo '<td><a href="banquet_hall.php?allot=' . $row['sno'] . '">Allot Banquet</a></td>';
-				// 			}
-				// 			echo '<td><a href="advance_booking.php?e_id=' . $row['sno'] . '" onclick="return confirm(\'Are you sure?\');">Edit</a></td>
-				// </tr>';
-			}
-		}
-		?>
-	</table>
+	
 </div>
 <script src="js/jquery.datetimepicker.full.js"></script>
 <script language="JavaScript">

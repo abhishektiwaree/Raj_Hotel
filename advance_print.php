@@ -61,8 +61,7 @@ $sql = 'select * from general_settings where `desc`="Print Table No On Bill"';
 $tabl = mysqli_fetch_assoc(execute_query($sql));
 $tableno = $tabl['rate'];
 
-
-echo $sql_invoice = 'SELECT * FROM advance_booking 
+$sql_invoice = 'SELECT * FROM advance_booking 
 JOIN category ON FIND_IN_SET(category.sno, advance_booking.cat_id) 
 WHERE advance_booking.sno = "'.$_GET['print_id'].'"';
 $invoice=mysqli_fetch_assoc(execute_query($sql_invoice));
@@ -203,7 +202,7 @@ $style = 'thermal';
                 <td><?php echo $cust['mobile']; ?></td>
             </tr>
             <tr>
-                <th>Kitchen Dining:</th>
+                <th>Meal Plan:</th>
                 <td><?php echo $invoice['kitchen_dining']; ?></td>
                 <th>Amount:</th>
                 <td><?php echo $invoice['kitchen_amount']; ?></td>

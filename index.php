@@ -159,13 +159,15 @@ page_header();
 	</div>	
 	<p>Total Rooms</p>
 	</div>
-	<div class="box bg-success">
-		<div class="num">
-	 <span id="count"><?php echo $totalCheckin; ?></span> <i style="color:white; margin:10px 10px 10px 0px;font-size:40px;" class="fa fa-2x fa-userfa-solid fa-person-walking-dashed-line-arrow-right"></i> <!--<img src="images/check-in.png" alt="hotel Image" > -->
-	</div>
-		<p>Total Check In</p>
-	</div>
-	<div class="box bg-danger">
+	<div class="box bg-success" onclick="window.location.href='arrival_report.php';" style="cursor: pointer;">
+    <div class="num">
+        <span id="count"><?php echo $totalCheckin; ?></span> 
+        <i style="color:white; margin:10px 10px 10px 0px;font-size:40px;" class="fa fa-2x fa-user fa-solid fa-person-walking-dashed-line-arrow-right"></i>
+    </div>
+    <p>Today Arrival</p>
+</div>
+
+	<div class="box bg-danger" onclick="window.location.href='checkout_report.php';" style="cursor: pointer;">
 		<div class="num">
 	<span id="count"><?php echo $totalCheckout; ?></span><i style="color:white; margin:10px 10px 10px 0px;font-size:40px;"  class="fa-solid fa-2x fa-person-walking-luggage"></i> <!--<img src="images/checkout.png" alt="hotel Image" > -->
 	</div>
