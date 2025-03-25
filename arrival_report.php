@@ -167,13 +167,12 @@ WHERE customer_transactions.sno=$uncancel_id";
 		$result = execute_query($sql);
 		while ($row = mysqli_fetch_array($result)) {
 			$i = 1;
-			$tot = 0;
-			$tot_total = 0;
-			$tot_due = 0;
-
-
+			$tot_advance = 0;  // Stores total advance amount
+			$tot_total = 0;    // Stores total grand amount (total + kitchen)
+			$tot_due = 0;      // Stores total due amount
+			$total_room = 0;   // Stores total room count
+		
 			foreach ($result as $row) {
-
 				$sql_mop = 'SELECT * FROM `customer_transactions` WHERE `advance_booking_id`="' . $row['sno'] . '" ';
 				if (isset($_POST['submit_form'])) {
 					if ($_POST['mop'] != '') {
@@ -183,31 +182,28 @@ WHERE customer_transactions.sno=$uncancel_id";
 						$sql_mop .= ' AND `type`="' . $_POST['cancel_status'] . '" ';
 					}
 				}
-				//echo $sql_mop.'<br>';
 				$result_mop = execute_query($sql_mop);
+				$col = ($i % 2 == 0) ? '#CCC' : '#EEE'; // Alternating row colors
+		
 				if (mysqli_num_rows($result_mop) != 0) {
 					while ($row_mop = mysqli_fetch_array($result_mop)) {
-						if ($i % 2 == 0) {
-							$col = '#CCC';
-						} else {
-							$col = '#EEE';
-						}
 						if ($row_mop['type'] == 'ADVANCE_AMT_CANCEL') {
-							$col = '#dd4a4a';
+							$col = '#dd4a4a'; // Red color for canceled
 						}
 					}
 				} else {
-
-					$row_mop['type'] = '';
-					$row_mop['sno'] = '';
-					$row_mop['mop'] = '';
+					$row_mop = ['type' => '', 'sno' => '', 'mop' => ''];
 				}
-				$sql = 'select * from customer where sno=' . $row['cust_id'];
+
+				$sql = 'SELECT * FROM customer WHERE sno=' . $row['cust_id'];
 				$result = execute_query($sql);
 				$details = mysqli_fetch_assoc($result);
-				$tot += $row['advance_amount'];
-				$tot_total += floatval($row['total_amount']);
-				$tot_due += $row['due_amount'];
+
+				// **✅ Corrected Total Calculations**
+				$tm = floatval($row['total_amount']) + floatval($row['kitchen_amount']);  // Calculate grand total
+				$tot_advance += floatval($row['advance_amount']);  // Total advance amount
+				$tot_total += $tm;  // Total of all grand amounts
+				$tot_due += ($tm - $row['advance_amount']);  // Total due amount
 
 				echo '<tr style="background:' . $col . '">
 					<td style="background:' . $col . '">' . $i++ . '</td>
@@ -273,7 +269,7 @@ WHERE customer_transactions.sno=$uncancel_id";
 						echo strtoupper($row_mop['mop']);
 					} ?>
 				</td>
-				<td style="background:<?php echo $col ?>"><?php echo $row['total_amount']; ?></td>
+				<td style="background:<?php echo $col ?>"><?php $tm=floatval($row['total_amount']) + floatval($row['kitchen_amount']); echo number_format($tm,2,'.',''); ?></td>
 				<?php
 				//if($row['status'] == 0 AND $row_mop['type'] == 'ADVANCE_AMT'){
 				echo '<td style="background:' . $col . '" class="editable_amount" id="row_amount_' . $row['sno'] . '">' . $row['advance_amount'] . '</td>';
@@ -281,7 +277,11 @@ WHERE customer_transactions.sno=$uncancel_id";
 										   else{
 											   echo '<td>'.$row['advance_amount'].'</td>';
 										   }**/
-				echo '<td style="background:' . $col . '">' . $row['due_amount'] . '</td>';
+				
+				$advanceAmount = isset($row['advance_amount']) ? floatval($row['advance_amount']) : 0;
+				$tm = isset($tm) ? floatval($tm) : 0;
+
+				echo '<td style="background:' . $col . '">' . ($tm - $advanceAmount) . '</td>';
 				echo '<td style="background:' . $col . '">' . date('d-m-Y h:i:s', strtotime($row['allotment_date'])) . '</td>';
 				echo '<td style="background:' . $col . '">' . date('d-m-Y h:i:s', strtotime($row['check_in'])) . '</td>';
 				echo '<td style="background:' . $col . '">' . date('d-m-Y h:i:s', strtotime($row['check_out'])) . '</td>';
@@ -370,7 +370,7 @@ WHERE customer_transactions.sno=$uncancel_id";
 			echo '<tr style="background:#00888d; color:#FFF;">
 				    <th style="background:#00888d; color:#FFF;" colspan="9">Total :</th>
 				    <th style="background:#00888d; color:#FFF;">' . ($tot_total ?? 0) . '</th>
-				    <th style="background:#00888d; color:#FFF;">' . ($tot ?? 0) . '</th>
+				    <th style="background:#00888d; color:#FFF;">' . ($tot_advance ?? 0) . '</th>
 				    <th style="background:#00888d; color:#FFF;">' . ($tot_due ?? 0). '</th>
 				    <th style="background:#00888d; color:#FFF;"></th>
 				    <th style="background:#00888d; color:#FFF;"></th>

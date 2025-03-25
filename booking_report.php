@@ -128,8 +128,29 @@ WHERE customer_transactions.sno=$uncancel_id";
 	}
 </style>
 <div id="container">
-	<h2>Check Out Report</h2>
-
+	<h2>Booking Report</h2>
+	<?php echo '<ul><h4>' . $msg . '</h4></ul>'; ?>
+	<form action="booking_report.php" id="report_form" class="wufoo leftLabel page1" name="addnewdesignation"
+		enctype="multipart/form-data" method="post" onSubmit="">
+		<table width="100%">
+			
+			<tr>
+				
+				<td>Booking Id</td>
+					<td><input type="text" name="booking_id" id="booking_id" value="<?php if (isset($_POST['booking_id'])) {
+						echo $_POST['booking_id'];
+					} ?>"></td> 
+			
+			<tr class="no-print">
+				<th colspan="3">
+					<input type="submit" name="submit_form" value="Search with Filters" class="btTxt submit">
+				</th>
+				<th colspan="3">
+					<input type="submit" name="reset_form" value="Reset Filters" class="btTxt submit">
+				</th>
+			</tr>
+		</table>
+	</form>
 	<table width="100%" class="table table-bordered">
 		<tr>
 			<th style="background:#00888d; color:#FFF;">S.No.</th>
@@ -161,10 +182,18 @@ WHERE customer_transactions.sno=$uncancel_id";
 		$total_room = 0;
 		$sql_mop = '';
 		$attachments = [];
-		$sql = 'SELECT * FROM advance_booking WHERE DATE(check_out) = "' . date("Y-m-d") . '"';
+		$sql = 'SELECT * FROM advance_booking WHERE 1=0 '; // Initially return no results
 
-		//echo $sql;
-		$result = execute_query($sql);
+if (isset($_POST['submit_form'])) {
+    $sql = 'SELECT * FROM advance_booking WHERE 1=1 '; // Enable searching
+
+    if (!empty($_POST['booking_id'])) {
+        $sql .= ' AND `booking_id` = "' . $_POST['booking_id'] . '" ';
+    }
+}
+
+$result = execute_query($sql);
+
 		while ($row = mysqli_fetch_array($result)) {
 			$i = 1;
 			$tot_advance = 0;  // Stores total advance amount
@@ -293,6 +322,8 @@ WHERE customer_transactions.sno=$uncancel_id";
         <button class="btn btn-link" style="color: #0D6EFD;" onclick="showPopup(\'' .
 					htmlspecialchars($roomTypeList) . '\', \'' .
 					htmlspecialchars($row['number_of_room']) . '\', \'' .
+					htmlspecialchars($row['number_of_days']) . '\', \'' .
+					htmlspecialchars($row['room_tariff']) . '\', \'' .
 					htmlspecialchars($row['room_number']) . '\')">
             View
         </button>
@@ -321,8 +352,10 @@ WHERE customer_transactions.sno=$uncancel_id";
 								<div class="table-like">
 									<div class="table-header">
 										<div class="table-cell">Room Category</div>
-										<div class="table-cell">No. of Rooms</div>
-										<div class="table-cell">Room Number</div>
+										<div class="table-cell">Rooms</div>
+										<div class="table-cell">Days</div>
+										<div class="table-cell">Tariff</div>
+										<div class="table-cell">Occupancy</div>
 									</div>
 									<div id="popupRoomDetails"></div> <!-- Dynamic Data Will Be Inserted Here -->
 								</div>
@@ -488,31 +521,36 @@ WHERE customer_transactions.sno=$uncancel_id";
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-	function showPopup(roomType, numberOfRooms, roomNumber) {
-		let detailsContainer = document.getElementById("popupRoomDetails");
+	function showPopup(roomType, numberOfRooms, numberOfDays, roomTariff, roomNumber) {
+    let detailsContainer = document.getElementById("popupRoomDetails");
 
-		// Clear previous content
-		detailsContainer.innerHTML = "";
+    // Clear previous content
+    detailsContainer.innerHTML = "";
 
-		// Convert comma-separated values into arrays
-		let roomTypes = roomType.split(",");
-		let numRooms = numberOfRooms.split(",");
-		let roomNumbers = roomNumber.split(",");
+    // Convert comma-separated values into arrays
+    let roomTypes = roomType.split(",");
+    let numRooms = numberOfRooms.split(",");
+    let numDays = numberOfDays.split(",");
+    let tariffs = roomTariff.split(",");
+    let roomNumbers = roomNumber.split(",");
 
-		// Loop through data and create rows dynamically
-		for (let i = 0; i < roomTypes.length; i++) {
-			let row = `<div class="table-row">
-				<div class="table-cell">${roomTypes[i]}</div>
-				<div class="table-cell">${numRooms[i] || '-'}</div>
-				<div class="table-cell">${roomNumbers[i] || '-'}</div>
-			</div>`;
-			detailsContainer.innerHTML += row;
-		}
+    // Loop through data and create rows dynamically
+    for (let i = 0; i < roomTypes.length; i++) {
+        let row = `<div class="table-row">
+            <div class="table-cell">${roomTypes[i]}</div>
+            <div class="table-cell">${numRooms[i] || '-'}</div>
+            <div class="table-cell">${numDays[i] || '-'}</div>
+            <div class="table-cell">${tariffs[i] || '-'}</div>
+            <div class="table-cell">${roomNumbers[i] || '-'}</div>
+        </div>`;
+        detailsContainer.innerHTML += row;
+    }
 
-		// Show Bootstrap Modal
-		var modal = new bootstrap.Modal(document.getElementById("infoModal"));
-		modal.show();
-	}
+    // Show Bootstrap Modal
+    var modal = new bootstrap.Modal(document.getElementById("infoModal"));
+    modal.show();
+}
+
 </script>
 <script>
 	function showAttachments(attachments) {

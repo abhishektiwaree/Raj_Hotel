@@ -137,17 +137,11 @@ WHERE customer_transactions.sno=$uncancel_id";
 				<td>Date Type</td>
 				<td>
 					<select name="date_type" id="date_type">
-						<option value="booking_wise" <?php if (isset($_POST['date_type'])) {
-							if ($_POST['date_type'] == 'booking_wise') {
-								echo 'selected';
-							}
-						} ?>>Booking Date</option>
-						<option value="allotment_wise" <?php if (isset($_POST['date_type'])) {
-							if ($_POST['date_type'] == 'allotment_wise') {
-								echo 'selected';
-							}
-						} ?>>Check-in Date</option>
+						<option value="booking_wise" selected>Booking Date</option>
+						<option value="allotment_wise" selected>Check-in Date</option>
+
 					</select>
+
 				</td>
 				<td>Date From :</td>
 				<td>
@@ -228,39 +222,16 @@ WHERE customer_transactions.sno=$uncancel_id";
 				<td>Mode Of Payment</td>
 				<td>
 					<select name="mop" id="mop">
-						<option value="">-All-</option>
-						<option value="cash" <?php if (isset($_POST['mop'])) {
-							if ($_POST['mop'] == 'cash') { ?>
-									selected="selected" <?php }
-						} ?>>Cash</option>
-						<option value="card" <?php if (isset($_POST['mop'])) {
-							if ($_POST['mop'] == 'card') { ?>
-									selected="selected" <?php }
-						} ?>>Card</option>
-						<option value="other" <?php if (isset($_POST['mop'])) {
-							if ($_POST['mop'] == 'other') { ?>
-									selected="selected" <?php }
-						} ?>>Other</option>
-						<option value="bank_transfer" <?php if (isset($_POST['mop'])) {
-							if ($_POST['mop'] == 'bank_transfer') { ?> selected="selected" <?php }
-						} ?>>Bank Transfer
+
+						<option value="cash" <?= ($selected_mop == 'cash') ? 'selected' : '' ?>>Cash</option>
+						<option value="card" <?= ($selected_mop == 'card') ? 'selected' : '' ?>>Card</option>
+						<option value="UPI" <?= ($selected_mop == 'other') ? 'selected' : '' ?>>UPI</option>
+						<option value="RTGS" <?= ($selected_mop == 'bank_transfer') ? 'selected' : '' ?>>RTGS</option>
+						<option value="NEFT" <?= ($selected_mop == 'cheque') ? 'selected' : '' ?>>NEFT</option>
+						<option value="cheque" <?= ($selected_mop == 'paytm') ? 'selected' : '' ?>>Cheque</option>
+						<option value="Bank_Transfer" <?= ($selected_mop == 'card_sbi') ? 'selected' : '' ?>>Bank Transfer
 						</option>
-						<option value="cheque" <?php if (isset($_POST['mop'])) {
-							if ($_POST['mop'] == 'cheque') { ?>
-									selected="selected" <?php }
-						} ?>>Cheque</option>
-						<option value="paytm" <?php if (isset($_POST['mop'])) {
-							if ($_POST['mop'] == 'paytm') { ?>
-									selected="selected" <?php }
-						} ?>>Paytm</option>
-						<option value="card_sbi" <?php if (isset($_POST['mop'])) {
-							if ($_POST['mop'] == 'card_sbi') { ?>
-									selected="selected" <?php }
-						} ?>>Card S.B.I</option>
-						<option value="card_pnb" <?php if (isset($_POST['mop'])) {
-							if ($_POST['mop'] == 'cheque') { ?>
-									selected="selected" <?php }
-						} ?>>Card P.N.B.</option>
+
 					</select>
 				</td>
 				<td>Status</td>
@@ -342,9 +313,9 @@ WHERE customer_transactions.sno=$uncancel_id";
 			if ($_POST['date_type'] == 'booking_wise') {
 				$sql .= ' and created_on>="' . $_POST['allot_from'] . '" and created_on<"' . date("Y-m-d", strtotime($_POST['allot_to']) + 86400) . '"';
 			} else if ($_POST['date_type'] == 'allotment_wise') {
-				//$sql .= ' and allotment_date>="'.$_POST['allot_from'].'" and allotment_date<"'.date("Y-m-d", strtotime($_POST['allot_to'])+86400).'"';
-		
-				$sql .= ' and (("' . $_POST['allot_from'] . '" between check_in and check_out) or ("' . date("Y-m-d", strtotime($_POST['allot_to']) + 86400) . '" between check_in and check_out))';
+				$sql .= ' and check_in>="' . $_POST['allot_from'] . '" and check_in<"' . date("Y-m-d", strtotime($_POST['allot_to']) + 86400) . '"';
+
+				// $sql .= ' and (("' . $_POST['allot_from'] . '" between check_in and check_out) or ("' . date("Y-m-d", strtotime($_POST['allot_to']) + 86400) . '" between check_in and check_out))';
 			} else {
 				$sql .= ' and created_on>="' . date("Y-m-d") . '" and created_on<"' . date("Y-m-d", strtotime(date("Y-m-d")) + 86400) . '"';
 			}
@@ -381,13 +352,12 @@ WHERE customer_transactions.sno=$uncancel_id";
 		$result = execute_query($sql);
 		while ($row = mysqli_fetch_array($result)) {
 			$i = 1;
-			$tot = 0;
-			$tot_total = 0;
-			$tot_due = 0;
-
-
+			$tot_advance = 0;  // Stores total advance amount
+			$tot_total = 0;    // Stores total grand amount (total + kitchen)
+			$tot_due = 0;      // Stores total due amount
+			$total_room = 0;   // Stores total room count
+		
 			foreach ($result as $row) {
-
 				$sql_mop = 'SELECT * FROM `customer_transactions` WHERE `advance_booking_id`="' . $row['sno'] . '" ';
 				if (isset($_POST['submit_form'])) {
 					if ($_POST['mop'] != '') {
@@ -397,31 +367,29 @@ WHERE customer_transactions.sno=$uncancel_id";
 						$sql_mop .= ' AND `type`="' . $_POST['cancel_status'] . '" ';
 					}
 				}
-				//echo $sql_mop.'<br>';
 				$result_mop = execute_query($sql_mop);
+				$col = ($i % 2 == 0) ? '#CCC' : '#EEE'; // Alternating row colors
+		
 				if (mysqli_num_rows($result_mop) != 0) {
 					while ($row_mop = mysqli_fetch_array($result_mop)) {
-						if ($i % 2 == 0) {
-							$col = '#CCC';
-						} else {
-							$col = '#EEE';
-						}
 						if ($row_mop['type'] == 'ADVANCE_AMT_CANCEL') {
-							$col = '#dd4a4a';
+							$col = '#dd4a4a'; // Red color for canceled
 						}
 					}
 				} else {
-
-					$row_mop['type'] = '';
-					$row_mop['sno'] = '';
-					$row_mop['mop'] = '';
+					$row_mop = ['type' => '', 'sno' => '', 'mop' => ''];
 				}
-				$sql = 'select * from customer where sno=' . $row['cust_id'];
+
+				$sql = 'SELECT * FROM customer WHERE sno=' . $row['cust_id'];
 				$result = execute_query($sql);
 				$details = mysqli_fetch_assoc($result);
-				$tot += $row['advance_amount'];
-				$tot_total += floatval($row['total_amount']);
-				$tot_due += $row['due_amount'];
+
+				// **✅ Corrected Total Calculations**
+				$tm = floatval($row['total_amount']) + floatval($row['kitchen_amount']);  // Calculate grand total
+				$tot_advance += floatval($row['advance_amount']);  // Total advance amount
+				$tot_total += $tm;  // Total of all grand amounts
+				$tot_due += ($tm - $row['advance_amount']);  // Total due amount
+		
 
 				echo '<tr style="background:' . $col . '">
 					<td style="background:' . $col . '">' . $i++ . '</td>
@@ -487,15 +455,21 @@ WHERE customer_transactions.sno=$uncancel_id";
 						echo strtoupper($row_mop['mop']);
 					} ?>
 				</td>
-				<td style="background:<?php echo $col ?>"><?php echo $row['total_amount']; ?></td>
+				<td style="background:<?php echo $col ?>">
+					<?php $tm = floatval($row['total_amount']) + floatval($row['kitchen_amount']);
+					echo number_format($tm, 2, '.', ''); ?>
+				</td>
 				<?php
 				//if($row['status'] == 0 AND $row_mop['type'] == 'ADVANCE_AMT'){
 				echo '<td style="background:' . $col . '" class="editable_amount" id="row_amount_' . $row['sno'] . '">' . $row['advance_amount'] . '</td>';
 				/**}
-										   else{
-											   echo '<td>'.$row['advance_amount'].'</td>';
-										   }**/
-				echo '<td style="background:' . $col . '">' . $row['due_amount'] . '</td>';
+													   else{
+														   echo '<td>'.$row['advance_amount'].'</td>';
+													   }**/
+				$advanceAmount = isset($row['advance_amount']) ? floatval($row['advance_amount']) : 0;
+				$tm = isset($tm) ? floatval($tm) : 0;
+
+				echo '<td style="background:' . $col . '">' . ($tm - $advanceAmount) . '</td>';
 				echo '<td style="background:' . $col . '">' . date('d-m-Y h:i:s', strtotime($row['allotment_date'])) . '</td>';
 				echo '<td style="background:' . $col . '">' . date('d-m-Y h:i:s', strtotime($row['check_in'])) . '</td>';
 				echo '<td style="background:' . $col . '">' . date('d-m-Y h:i:s', strtotime($row['check_out'])) . '</td>';
@@ -508,6 +482,8 @@ WHERE customer_transactions.sno=$uncancel_id";
         <button class="btn btn-link" style="color: #0D6EFD;" onclick="showPopup(\'' .
 					htmlspecialchars($roomTypeList) . '\', \'' .
 					htmlspecialchars($row['number_of_room']) . '\', \'' .
+					htmlspecialchars($row['number_of_days']) . '\', \'' .
+					htmlspecialchars($row['room_tariff']) . '\', \'' .
 					htmlspecialchars($row['room_number']) . '\')">
             View
         </button>
@@ -536,8 +512,10 @@ WHERE customer_transactions.sno=$uncancel_id";
 								<div class="table-like">
 									<div class="table-header">
 										<div class="table-cell">Room Category</div>
-										<div class="table-cell">No. of Rooms</div>
-										<div class="table-cell">Room Number</div>
+										<div class="table-cell">Rooms</div>
+										<div class="table-cell">Days</div>
+										<div class="table-cell">Tariff</div>
+										<div class="table-cell">Occupancy</div>
 									</div>
 									<div id="popupRoomDetails"></div> <!-- Dynamic Data Will Be Inserted Here -->
 								</div>
@@ -584,8 +562,8 @@ WHERE customer_transactions.sno=$uncancel_id";
 			echo '<tr style="background:#00888d; color:#FFF;">
 				    <th style="background:#00888d; color:#FFF;" colspan="9">Total :</th>
 				    <th style="background:#00888d; color:#FFF;">' . ($tot_total ?? 0) . '</th>
-				    <th style="background:#00888d; color:#FFF;">' . ($tot ?? 0) . '</th>
-				    <th style="background:#00888d; color:#FFF;">' . ($tot_due ?? 0). '</th>
+				    <th style="background:#00888d; color:#FFF;">' . ($tot_advance ?? 0) . '</th>
+				    <th style="background:#00888d; color:#FFF;">' . ($tot_due ?? 0) . '</th>
 				    <th style="background:#00888d; color:#FFF;"></th>
 				    <th style="background:#00888d; color:#FFF;"></th>
 				    <th style="background:#00888d; color:#FFF;"></th>
@@ -703,7 +681,7 @@ WHERE customer_transactions.sno=$uncancel_id";
 </script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-	function showPopup(roomType, numberOfRooms, roomNumber) {
+	function showPopup(roomType, numberOfRooms, numberOfDays, roomTariff, roomNumber) {
 		let detailsContainer = document.getElementById("popupRoomDetails");
 
 		// Clear previous content
@@ -712,15 +690,19 @@ WHERE customer_transactions.sno=$uncancel_id";
 		// Convert comma-separated values into arrays
 		let roomTypes = roomType.split(",");
 		let numRooms = numberOfRooms.split(",");
+		let numDays = numberOfDays.split(",");
+		let tariffs = roomTariff.split(",");
 		let roomNumbers = roomNumber.split(",");
 
 		// Loop through data and create rows dynamically
 		for (let i = 0; i < roomTypes.length; i++) {
 			let row = `<div class="table-row">
-				<div class="table-cell">${roomTypes[i]}</div>
-				<div class="table-cell">${numRooms[i] || '-'}</div>
-				<div class="table-cell">${roomNumbers[i] || '-'}</div>
-			</div>`;
+			<div class="table-cell">${roomTypes[i]}</div>
+			<div class="table-cell">${numRooms[i] || '-'}</div>
+			<div class="table-cell">${numDays[i] || '-'}</div>
+			<div class="table-cell">${tariffs[i] || '-'}</div>
+			<div class="table-cell">${roomNumbers[i] || '-'}</div>
+		</div>`;
 			detailsContainer.innerHTML += row;
 		}
 
@@ -728,6 +710,7 @@ WHERE customer_transactions.sno=$uncancel_id";
 		var modal = new bootstrap.Modal(document.getElementById("infoModal"));
 		modal.show();
 	}
+
 </script>
 <script>
 	function showAttachments(attachments) {

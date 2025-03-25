@@ -4,7 +4,7 @@ set_time_limit(0);
 error_reporting(E_ALL);
 sethistory();
 
-error_reporting(0);
+// error_reporting(0);
 session_cache_limiter('nocache');
 session_start();
 function page_header($title='WeKnow ERP') {
@@ -524,33 +524,37 @@ function navigation($parent='') {
 
                     if($_SESSION['usertype'] != 'sadmin'){
                         if($row['parent'] == 'P'){
-                            $sql = 'select group_concat(sno) as sno from navigation where parent="'.$row['sno'].'" order by abs(sort_no), sub_parent, link_description';
-                            $row_sub = mysqli_fetch_assoc(execute_query($sql));
 
-                            $sql = 'select * from user_access where user_id="'.$_SESSION['usertype'].'" and file_name in ('.$row_sub['sno'].')';
+                            // $sql = 'select group_concat(sno) as sno from navigation where parent="'.$row['sno'].'" order by abs(sort_no), sub_parent, link_description';
+                            // $row_sub = mysqli_fetch_assoc(execute_query($sql));
+
+                            $sql = 'select * from user_access  join navigation on user_access.file_name=navigation.sno where user_access.user_id="'.$_SESSION['usersno'].'"';
                             $result_child_count = execute_query($sql);
+							while($nav=mysqli_fetch_array($result_child_count )){
+								echo '<li class="nav-item'.$active.'"><a class="nav-link" href="'.$nav['hyper_link'].'"><i class="'.$nav['icon_image'].'"></i><p>'.$nav['link_description'].'</p></a></li>';
+							}
+							break;
+                            // if(mysqli_num_rows($result_child_count) != 0){
+                            //     echo '
+                            //     <li class="nav-item'.$active.'">
+                            //         <a data-toggle="collapse" href="#parent'.$row['sno'].'" class="nav-link"><i class="'.$row['icon_image'].'"></i><p>'.$row['link_description'].'<b class="caret"></b></p></a>
+                            //         <div class="collapse" id="parent'.$row['sno'].'">
+                            //             <ul class="nav">';
 
-                            if(mysqli_num_rows($result_child_count) != 0){
-                                echo '
-                                <li class="nav-item'.$active.'">
-                                    <a data-toggle="collapse" href="#parent'.$row['sno'].'" class="nav-link"><i class="'.$row['icon_image'].'"></i><p>'.$row['link_description'].'<b class="caret"></b></p></a>
-                                    <div class="collapse" id="parent'.$row['sno'].'">
-                                        <ul class="nav">';
-
-                                $sql = 'select * from navigation where parent="'.$row['sno'].'" order by abs(sort_no), sub_parent, link_description';
-                                $result_sub = execute_query($sql);
-                                while($row_sub = mysqli_fetch_assoc($result_sub)){
-                                    $sql = 'select * from user_access where user_id="'.$_SESSION['usertype'].'" and file_name="'.$row_sub['sno'].'"';
-                                    $result_access = execute_query($sql);
-                                    if(mysqli_num_rows($result_access) == 1){
-                                        echo '<li class="nav-item"><a class="nav-link" href="'.$row_sub['hyper_link'].'"><i class="'.$row_sub['icon_image'].'" style="font-size:20px; margin-left:15px; margin-right:0px;"></i><span class="sidebar-mini"></span><span class="sidebar-normal">'.$row_sub['link_description'].'</span></a></li>';
-                                    }
-                                }
-                                echo '
-                                        </ul>
-                                    </div>
-                                </li>';
-                            }
+                            //     $sql = 'select * from navigation where parent="'.$row['sno'].'" order by abs(sort_no), sub_parent, link_description';
+                            //     $result_sub = execute_query($sql);
+                            //     while($row_sub = mysqli_fetch_assoc($result_sub)){
+                            //         $sql = 'select * from user_access where user_id="'.$_SESSION['usertype'].'" and file_name="'.$row_sub['sno'].'"';
+                            //         $result_access = execute_query($sql);
+                            //         if(mysqli_num_rows($result_access) == 1){
+                            //             echo '<li class="nav-item"><a class="nav-link" href="'.$row_sub['hyper_link'].'"><i class="'.$row_sub['icon_image'].'" style="font-size:20px; margin-left:15px; margin-right:0px;"></i><span class="sidebar-mini"></span><span class="sidebar-normal">'.$row_sub['link_description'].'</span></a></li>';
+                            //         }
+                            //     }
+                            //     echo '
+                            //             </ul>
+                            //         </div>
+                            //     </li>';
+                            // }
 
                         } else {
                             $sql = 'select * from user_access where user_id="'.$_SESSION['usertype'].'" and file_name="'.$row['sno'].'"';
@@ -685,35 +689,19 @@ function randomstring(){
 }
 
 function logout(){
+    date_default_timezone_set('Asia/Calcutta');
+    $_SESSION['enddate'] = date('Y-m-d'); // Fix lowercase 'y' to 'Y' for full year
+    $_SESSION['endtime'] = date('H:i:s'); // Use date() instead of localtime()
+    
+    // Destroy session properly
+    $_SESSION = array(); // Unset all session variables
+    session_unset(); 
+    session_destroy(); 
+    session_write_close(); 
 
-	date_default_timezone_set('Asia/Calcutta');
-
-	$_SESSION['enddate']=date('y-m-d');
-
-	$time = localtime();
-
-	$time = $time[2].':'.$time[1].':'.$time[0];
-
-	$_SESSION['endtime']=$time;
-
-	$sql = "update session set s_end_time='".$_SESSION['endtime']."' where s_id='".$_SESSION['id']."' and user='".$_SESSION['uname']."'";
-
-	execute_query($sql);
-
-	session_destroy();
-
-	session_unset();
-
-	session_write_close();
-	
-
-	echo '<div id="container" class="ltr">';
-
-	 header("location: index.php");
-
-	echo '</div>';
-
+    echo '<h1>Logged Out Successfully. <a href="index.php">Click Here</a> to continue or close this window.</h1>';
 }
+
 
 function add_customer($name, $address, $mobile, $tin , $company_name){
 	$name = trim($name);

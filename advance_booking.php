@@ -24,7 +24,8 @@ $editData = [
 	'cat_id' => '',
 	'number_of_room' => '',
 	'room_tariff' => '',
-	'room_number' => ''
+	'room_number' => '',
+	'number_of_days' => ''
 ];
 if (isset($_GET['e_id'])) {
 	$sql_edit = 'SELECT * FROM `advance_booking` WHERE `sno`="' . $_GET['e_id'] . '"';
@@ -38,9 +39,9 @@ if (isset($_GET['e_id'])) {
 	$sql_trans = 'SELECT * FROM `customer_transactions` WHERE `advance_booking_id`="' . $_GET['e_id'] . '"';
 	$result_trans = execute_query($sql_trans);
 	$row_trans = mysqli_fetch_array($result_trans);
+	$selected_mop = isset($row_trans['mop']) ? $row_trans['mop'] : '';
 
-
-	$sql = 'SELECT cat_id, number_of_room,room_tariff, room_number FROM advance_booking WHERE sno = "' . $_GET['e_id'] . '"';
+	$sql = 'SELECT cat_id, number_of_room,room_tariff, room_number,number_of_days FROM advance_booking WHERE sno = "' . $_GET['e_id'] . '"';
 	$result = execute_query($sql);
 
 	if ($row = mysqli_fetch_assoc($result)) {
@@ -51,6 +52,7 @@ if (isset($_GET['e_id'])) {
 		$editData['number_of_room'] = explode(',', $row['number_of_room']);
 		$editData['room_tariff'] = explode(',', $row['room_tariff']);
 		$editData['room_number'] = explode(',', $row['room_number']);
+		$editData['number_of_days'] = explode(',', $row['number_of_days']);
 	}
 }
 // echo '<pre style="margin-left:200px;">';
@@ -68,9 +70,10 @@ if (isset($_POST['submit'])) {
 			$_POST['cust_sno'] = $db->insert_id;
 		}
 		if ($_POST['cust_sno'] != '') {
-			$sql = 'update customer set 
-			cust_name="' . $_POST['cust_name1'] . '"
-			where sno=' . $_POST['cust_sno'];
+			$sql = 'UPDATE customer 
+        SET cust_name="' . mysqli_real_escape_string($db, $_POST['cust_name1']) . '" 
+        WHERE sno=' . intval($_POST['cust_sno']);
+
 			$result = execute_query($sql);
 		} else {
 			$inv_no = '';
@@ -123,12 +126,14 @@ if (isset($_POST['submit'])) {
 				$numberOfRoomArray = isset($_POST['number_of_room']) ? $_POST['number_of_room'] : [];
 				$tariffOfRoomArray = isset($_POST['room_tariff']) ? $_POST['room_tariff'] : [];
 				$roomNumberArray = isset($_POST['room_number']) ? $_POST['room_number'] : [];
+				$numberOfDays = isset($_POST['number_of_days']) ? $_POST['number_of_days'] : [];
 
 				// Convert arrays to comma-separated strings
 				$catString = implode(',', $catArray);
 				$numberOfRoomString = implode(',', $numberOfRoomArray);
 				$tariffOfRoomString = implode(',', $tariffOfRoomArray);
 				$roomNumberString = implode(',', $roomNumberArray);
+				$daysNumberString = implode(',', $numberOfDays );
 
 				// Update the database
 				$sql_update = 'UPDATE `advance_booking` SET
@@ -153,7 +158,8 @@ if (isset($_POST['submit'])) {
 						`number_of_room`="' . $numberOfRoomString . '",
 						`cat_id`="' . $catString . '",
 						`room_number`="' . $roomNumberString . '",
-						`room_tariff`="' . $tariffOfRoomString . '"
+						`room_tariff`="' . $tariffOfRoomString . '",
+						`number_of_days`="' . $daysNumberString . '"
 						WHERE `sno`="' . $_POST['edit_sno'] . '"';
 			}
 
@@ -176,14 +182,45 @@ if (isset($_POST['submit'])) {
 			$numberOfRoomArray = isset($_POST['number_of_room']) ? $_POST['number_of_room'] : [];
 			$tariffOfRoomArray = isset($_POST['room_tariff']) ? $_POST['room_tariff'] : [];
 			$roomNumberArray = isset($_POST['room_number']) ? $_POST['room_number'] : [];
+			$numberOfDays = isset($_POST['number_of_days']) ? $_POST['number_of_days'] : [];
 
 			$catString = implode(',', $catArray);  // Convert category array to comma-separated string
 			$numberOfRoomString = implode(',', $numberOfRoomArray);
 			$tariffOfRoomString = implode(',', $tariffOfRoomArray);
 			$roomNumberString = implode(',', $roomNumberArray);  // Convert room numbers array to string
+			$daysNumberString = implode(',', $numberOfDays );
+			$allotment_date = $_POST['check_in']; // Input date in YYYY-MM-DD format
+
+			// Convert date to DD/MM/YYYY format
+			$formatted_date = date("d/m/Y", strtotime($allotment_date));
+			
+			// Extract Year and Month to count bookings in the same month
+			$year_month = date("m/Y", strtotime($allotment_date));
+			
+			// Query to get the last booking ID for the given month
+			$sql = "SELECT booking_id FROM advance_booking 
+					WHERE booking_id LIKE '%/$year_month/%' 
+					ORDER BY booking_id DESC LIMIT 1";
+			
+			$result = execute_query($sql);
+			$row = mysqli_fetch_assoc($result);
+			
+			if ($row) {
+				// Extract the last booking number
+				$last_booking_id = explode('/', $row['booking_id']);
+				$new_booking_number = intval(end($last_booking_id)) + 1;
+			} else {
+				$new_booking_number = 1;
+			}
+			
+			// Generate new booking ID
+			$booking_id = $formatted_date . '/' . str_pad($new_booking_number, 2, '0', STR_PAD_LEFT);
+			
+			
+			
 
 			// Correcting the SQL query syntax
-			$sql = 'INSERT INTO advance_booking (guest_name, cust_id, financial_year, allotment_date, check_in, check_out, created_by, created_on, remarks, status, advance_amount, total_amount, due_amount, purpose, advance_for_id, advance_for_checkin_id, number_of_room, room_number, cat_id,kitchen_dining,kitchen_amount,room_tariff) 
+			$sql = 'INSERT INTO advance_booking (guest_name, cust_id, financial_year, allotment_date, check_in, check_out, created_by, created_on, remarks, status, advance_amount, total_amount, due_amount, purpose, advance_for_id, advance_for_checkin_id, number_of_room, room_number, cat_id,kitchen_dining,kitchen_amount,room_tariff,number_of_days,booking_id) 
 			VALUES (
 				"' . mysqli_real_escape_string($db, $_POST['cust_name1']) . '", 
 				"' . mysqli_real_escape_string($db, $_POST['cust_sno']) . '", 
@@ -206,7 +243,9 @@ if (isset($_POST['submit'])) {
 				"' . mysqli_real_escape_string($db, $catString) . '",
 				"' . mysqli_real_escape_string($db, $_POST['kitchen_dining']) . '", 
 				"' . mysqli_real_escape_string($db, $_POST['kitchen_amount']) . '",
-				"' . mysqli_real_escape_string($db, $tariffOfRoomString) . '"
+				"' . mysqli_real_escape_string($db, $tariffOfRoomString) . '",
+				"' . mysqli_real_escape_string($db, $daysNumberString) . '",
+				"' . mysqli_real_escape_string($db, $booking_id) . '"
 			)';
 
 			$result = execute_query($sql);
@@ -215,7 +254,7 @@ if (isset($_POST['submit'])) {
 			$result = execute_query($sql);
 			$old_data1 = mysqli_fetch_assoc($result);
 			$alot_id = $old_data1['sno'];
-			if ($_POST['advance_amount'] > 0) {
+			if ($_POST['advance_amount'] >= 0) {
 				$sql = 'INSERT INTO customer_transactions (cust_id , advance_booking_id , type , timestamp, amount, mop, created_by , created_on , remarks , invoice_no , financial_year , payment_for) VALUES ("' . $_POST['cust_sno'] . '", "' . $alot_id . '" , "ADVANCE_AMT" , "' . date('Y-m-d') . '"  , "' . $_POST['advance_amount'] . '" , "' . $_POST['mop'] . '", "' . $_SESSION['username'] . '" ,CURRENT_TIMESTAMP, "' . $_POST['remarks'] . '","","' . $year . '" , "' . $type . '")';
 				$result = execute_query($sql);
 			}
@@ -903,41 +942,18 @@ if (isset($_GET['del'])) {
 			<tr>
 				<td>Mode of Payment : </td>
 				<td>
-					<select id="mop" name="mop" class="field select medium" tabindex="<?php echo $tab++; ?>">
-						<option value="cash" <?php if (isset($_GET['id'])) {
-							if ($row_trans['mop'] == 'cash') { ?>
-									selected="selected" <?php }
-						} ?>>Cash</option>
-						<option value="card" <?php if (isset($_GET['id'])) {
-							if ($row_trans['mop'] == 'card') { ?>
-									selected="selected" <?php }
-						} ?>>Card</option>
-						<option value="other" <?php if (isset($_GET['id'])) {
-							if ($row_trans['mop'] == 'other') { ?>
-									selected="selected" <?php }
-						} ?>>Other</option>
-						<option value="bank_transfer" <?php if (isset($_GET['id'])) {
-							if ($row_trans['mop'] == 'bank_transfer') { ?> selected="selected" <?php }
-						} ?>>Bank Transfer
-						</option>
-						<option value="cheque" <?php if (isset($_GET['id'])) {
-							if ($row_trans['mop'] == 'cheque') { ?>
-									selected="selected" <?php }
-						} ?>>Cheque</option>
-						<option value="paytm" <?php if (isset($_GET['id'])) {
-							if ($row_trans['mop'] == 'paytm') { ?>
-									selected="selected" <?php }
-						} ?>>Paytm</option>
-						<option value="card_sbi" <?php if (isset($_GET['id'])) {
-							if ($row_trans['mop'] == 'card_sbi') { ?>
-									selected="selected" <?php }
-						} ?>>Card S.B.I</option>
-						<option value="card_pnb" <?php if (isset($_GET['id'])) {
-							if ($row_trans['mop'] == 'cheque') { ?>
-									selected="selected" <?php }
-						} ?>>Card P.N.B.</option>
-					</select>
-				</td>
+				<select name="mop" id="mop">
+    <option value="cash" <?= ($selected_mop == 'cash') ? 'selected' : '' ?>>Cash</option>
+    <option value="card" <?= ($selected_mop == 'card') ? 'selected' : '' ?>>Card</option>
+    <option value="UPI" <?= ($selected_mop == 'UPI') ? 'selected' : '' ?>>UPI</option>
+    <option value="RTGS" <?= ($selected_mop == 'RTGS') ? 'selected' : '' ?>>RTGS</option>
+    <option value="NEFT" <?= ($selected_mop == 'NEFT') ? 'selected' : '' ?>>NEFT</option>
+    <option value="cheque" <?= ($selected_mop == 'cheque') ? 'selected' : '' ?>>Cheque</option>
+    <option value="Bank_Transfer" <?= ($selected_mop == 'Bank_Transfer') ? 'selected' : '' ?>>Bank Transfer</option>
+</select>
+
+</td>
+
 				<td>Total Amount : </td>
 				<td>
 					<input id="total_amount" name="total_amount"
@@ -987,9 +1003,10 @@ if (isset($_GET['del'])) {
 				<tr style="background:#000; color:#FFF;">
 					<th style="width: 310px;">Room Category</th>
 					<th style="width: 200px;">Remains Room</th>
-					<th>Number of Room</th>
-					<th>Room Tariff</th>
-					<th>Room Number</th>
+					<th>Rooms</th>
+					<th>Days</th>
+					<th>Tariff</th>
+					<th>Occupancy</th>
 					<th>Action</th>
 				</tr>
 			</table>
@@ -1000,7 +1017,7 @@ if (isset($_GET['del'])) {
 
 				for ($i = 0; $i < $rowCount; $i++) { ?>
 					<tr>
-						<td style="width: 365px;">
+						<td style="width: 315px;">
 							<select name="cat[]" class="field select medium" onchange="fetchRemainingRooms(this)"
 								data-mode="<?php echo isset($_GET['e_id']) ? 'edit' : 'normal'; ?>">
 								<option value="">-- Select Room Category --</option>
@@ -1015,26 +1032,31 @@ if (isset($_GET['del'])) {
 								?>
 							</select>
 						</td>
-						<td style="width: 180px;">
+						<td style="width: 170px;">
 							<input type="text" name="rem_room[]" class="rem_room"
-								style="width:150px;margin-left: 20px;background:yellow;" disabled>
+								style="width:180px;background:yellow;" disabled>
 						</td>
 						<td>
 							<input name="number_of_room[]" class="field text medium number_of_room" maxlength="200"
-								type="text" style="width:220px;"
+								type="text" style="width:150px;"
 								value="<?php echo isset($editData['number_of_room'][$i]) ? htmlspecialchars($editData['number_of_room'][$i]) : ''; ?>" />
 						</td>
 						<td>
+							<input name="number_of_days[]" class="field text medium number_of_days" maxlength="200"
+								type="text" style="width:90px;"
+								value="<?php echo isset($editData['number_of_days'][$i]) ? htmlspecialchars($editData['number_of_days'][$i]) : ''; ?>" />
+						</td>
+						<td>
 							<input name="room_tariff[]" class="field text medium" maxlength="255" type="text"
-								style="width:170px;"
+								style="width:90px;"
 								value="<?php echo isset($editData['room_tariff'][$i]) ? htmlspecialchars($editData['room_tariff'][$i]) : ''; ?>" />
 						</td>
 						<td>
 							<input name="room_number[]" class="field text medium" maxlength="255" type="text"
-								style="width:200px;"
+								style="width:190px;"
 								value="<?php echo isset($editData['room_number'][$i]) ? htmlspecialchars($editData['room_number'][$i]) : ''; ?>" />
 						</td>
-						<td style="width: 150px;">
+						<td style="width: 140px;">
 							<button class="btn btn-success" type="button" onclick="addRow()">Add</button>
 						</td>
 					</tr>
@@ -1198,6 +1220,7 @@ if (isset($_GET['del'])) {
 		newRow.querySelector("select").value = "";
 		newRow.querySelector(".rem_room").value = "";
 		newRow.querySelector("input[name='number_of_room[]']").value = "";
+		newRow.querySelector("input[name='number_of_days[]']").value = "";
 		newRow.querySelector("input[name='room_number[]']").value = "";
 		newRow.querySelector("input[name='room_tariff[]']").value = "";
 
@@ -1249,27 +1272,29 @@ if (isset($_GET['del'])) {
 
 <script>
 	function calculateTotalAmount() {
-		let totalAmount = 0;
-		let rows = document.querySelectorAll("#roomTable tr");
+    let totalAmount = 0;
+    let rows = document.querySelectorAll("#roomTable tr");
 
-		rows.forEach(row => {
-			let numberOfRooms = row.querySelector(".number_of_room") ? parseFloat(row.querySelector(".number_of_room").value) || 0 : 0;
-			let roomTariff = row.querySelector("[name='room_tariff[]']") ? parseFloat(row.querySelector("[name='room_tariff[]']").value) || 0 : 0;
+    rows.forEach(row => {
+        let numberOfRooms = row.querySelector(".number_of_room") ? parseFloat(row.querySelector(".number_of_room").value) || 0 : 0;
+        let roomTariff = row.querySelector("[name='room_tariff[]']") ? parseFloat(row.querySelector("[name='room_tariff[]']").value) || 0 : 0;
+        let numberOfDays = row.querySelector(".number_of_days") ? parseFloat(row.querySelector(".number_of_days").value) || 0 : 0;
 
-			let rowTotal = numberOfRooms * roomTariff;
-			totalAmount += rowTotal;
-		});
+        let rowTotal = (numberOfRooms * roomTariff * numberOfDays);
+        totalAmount += rowTotal;
+    });
 
-		// Update total amount field
-		document.getElementById("total_amount").value = totalAmount.toFixed(2);
-	}
+    // Update total amount field
+    document.getElementById("total_amount").value = totalAmount.toFixed(2);
+}
 
-	// Attach event listener to update total on input change
-	document.addEventListener("input", function (event) {
-		if (event.target.matches(".number_of_room") || event.target.matches("[name='room_tariff[]']")) {
-			calculateTotalAmount();
-		}
-	});
+// Attach event listener to update total on input change
+document.addEventListener("input", function (event) {
+    if (event.target.matches(".number_of_room") || event.target.matches("[name='room_tariff[]']") || event.target.matches(".number_of_days")) {
+        calculateTotalAmount();
+    }
+});
+
 </script>
 
 

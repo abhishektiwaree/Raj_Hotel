@@ -16,7 +16,11 @@ if (isset($_GET['sno']) && isset($_GET['check_in'])) {
         $totalAvailableRooms = intval($row['remarks']); // Convert to integer
 
         // Fetch all bookings for the given date where cat_id is present
-        $bookingQuery = "SELECT cat_id, number_of_room FROM advance_booking WHERE FIND_IN_SET('$roomsno', cat_id) > 0 AND DATE(check_in) = '$checkinDate'";
+        $bookingQuery = "SELECT cat_id, number_of_room FROM advance_booking 
+                 WHERE FIND_IN_SET('$roomsno', cat_id) > 0 
+                 AND DATE(check_in) <= '$checkinDate' 
+                 AND DATE(check_out) >= '$checkinDate'";
+
         $bookingResult = mysqli_query($db, $bookingQuery);
 
         $bookedRooms = 0;

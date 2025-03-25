@@ -12,7 +12,13 @@ if(isset($_POST['submit'])){
 		if(mysqli_num_rows($user)==0) {
 			$sql='INSERT INTO `users`(`userid`,`pwd`,`type`, user_name, father_name, address, mobile) VALUES 
 			("'.$_POST['user_id'].'","'.$_POST['user_pass'].'",1, "'.$_POST['user_name'].'", "'.$_POST['father_name'].'", "'.$_POST['address'].'", "'.$_POST['mobile'].'")';
-			execute_query($sql);
+			$run=execute_query($sql);
+			if($run){
+				$msg .= '<li>User Created Successfully</li>';
+
+			}else{
+				$msg.='<li>User Not Created</li>';
+			}
 			$user_sno = insert_id($db);
 			
 			$sql = 'select * from navigation';
@@ -23,6 +29,7 @@ if(isset($_POST['submit'])){
 					$sql='INSERT INTO `user_access`(`user_id`, `file_name`, `created_by`, `creation_time`) 
 					VALUES("'.$user_sno.'","'.$nav['sno'].'", "'.$_SESSION['username'].'","'.date("Y-m-d H:i:s").'")';
 					execute_query($sql);
+					
 
 				}
 			}
