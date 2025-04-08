@@ -6,30 +6,7 @@ logvalidate($_SESSION['username'], $_SERVER['SCRIPT_FILENAME']);
 $response = 1;
 $msg = '';
 date_default_timezone_set('Asia/Calcutta');
-if (isset($_GET['cancel_id'])) {
-	$cancel_id = intval($_GET['cancel_id']); // Ensure security
-	$sql = "UPDATE customer_transactions SET `type` = 'ADVANCE_AMT_CANCEL' WHERE sno = $cancel_id";
-	$result = execute_query($sql);
 
-	$sql = "UPDATE advance_booking 
-JOIN customer_transactions ON advance_booking.cust_id = customer_transactions.cust_id
-SET advance_booking.status = 1
-WHERE customer_transactions.sno=$cancel_id";
-	$result = execute_query($sql);
-}
-
-if (isset($_GET['uncancel_id'])) {
-	$uncancel_id = intval($_GET['uncancel_id']); // Ensure security
-	$sql = "UPDATE customer_transactions SET `type` = 'ADVANCE_AMT' WHERE sno = $uncancel_id";
-	$result = execute_query($sql);
-
-	$sql = "UPDATE advance_booking 
-JOIN customer_transactions ON advance_booking.cust_id = customer_transactions.cust_id
-SET advance_booking.status = 0
-WHERE customer_transactions.sno=$uncancel_id";
-	$result = execute_query($sql);
-
-}
 
 ?>
 <style>
@@ -222,7 +199,7 @@ WHERE customer_transactions.sno=$uncancel_id";
 				<td>Mode Of Payment</td>
 				<td>
 					<select name="mop" id="mop">
-
+						<option value="" <?= ($selected_mop == '') ? 'selected' : '' ?>>Select</option>
 						<option value="cash" <?= ($selected_mop == 'cash') ? 'selected' : '' ?>>Cash</option>
 						<option value="card" <?= ($selected_mop == 'card') ? 'selected' : '' ?>>Card</option>
 						<option value="UPI" <?= ($selected_mop == 'other') ? 'selected' : '' ?>>UPI</option>
@@ -280,7 +257,7 @@ WHERE customer_transactions.sno=$uncancel_id";
 	<table width="100%" class="table table-bordered">
 		<tr>
 			<th style="background:#00888d; color:#FFF;">S.No.</th>
-			<th style="background:#00888d; color:#FFF;">Receipt No.</th>
+			<!-- <th style="background:#00888d; color:#FFF;">Receipt No.</th> -->
 			<th style="background:#00888d; color:#FFF;">Comapny Name</th>
 			<th style="background:#00888d; color:#FFF;">Guest Name</th>
 			<th style="background:#00888d; color:#FFF;">Mobile</th>
@@ -308,48 +285,62 @@ WHERE customer_transactions.sno=$uncancel_id";
 		$total_room = 0;
 		$sql_mop = '';
 		$attachments = [];
-		$sql = 'select * from advance_booking where 1=1 ';
-		if (isset($_POST['submit_form'])) {
-			if ($_POST['date_type'] == 'booking_wise') {
-				$sql .= ' and created_on>="' . $_POST['allot_from'] . '" and created_on<"' . date("Y-m-d", strtotime($_POST['allot_to']) + 86400) . '"';
-			} else if ($_POST['date_type'] == 'allotment_wise') {
-				$sql .= ' and check_in>="' . $_POST['allot_from'] . '" and check_in<"' . date("Y-m-d", strtotime($_POST['allot_to']) + 86400) . '"';
+		$sql = 'SELECT ab.*, ct.mop, ct.type AS trans_type, ct.sno AS trans_sno 
+        FROM advance_booking ab
+        LEFT JOIN customer_transactions ct ON ab.sno = ct.advance_booking_id
+        WHERE 1=1 ';
+        
+if (isset($_POST['submit_form'])) {
+    if ($_POST['date_type'] == 'booking_wise') {
+        $sql .= ' AND ab.created_on >= "' . $_POST['allot_from'] . '" 
+                  AND ab.created_on < "' . date("Y-m-d", strtotime($_POST['allot_to']) + 86400) . '"';
+    } elseif ($_POST['date_type'] == 'allotment_wise') {
+        $sql .= ' AND ab.check_in >= "' . $_POST['allot_from'] . '" 
+                  AND ab.check_in < "' . date("Y-m-d", strtotime($_POST['allot_to']) + 86400) . '"';
+    } else {
+        $sql .= ' AND ab.created_on >= "' . date("Y-m-d") . '" 
+                  AND ab.created_on < "' . date("Y-m-d", strtotime(date("Y-m-d")) + 86400) . '"';
+    }
 
-				// $sql .= ' and (("' . $_POST['allot_from'] . '" between check_in and check_out) or ("' . date("Y-m-d", strtotime($_POST['allot_to']) + 86400) . '" between check_in and check_out))';
-			} else {
-				$sql .= ' and created_on>="' . date("Y-m-d") . '" and created_on<"' . date("Y-m-d", strtotime(date("Y-m-d")) + 86400) . '"';
-			}
-			if ($_POST['cust_sno'] != '') {
-				$sql .= ' AND `cust_id`="' . $_POST['cust_sno'] . '" ';
-			}
-			if (!empty($_POST['cust_name'])) {
-				$sql .= ' AND guest_name LIKE "%' . $_POST['cust_name'] . '%"';
-			}
-			if ($_POST['type'] != '') {
-				$sql .= ' AND `purpose`="' . $_POST['type'] . '" ';
-			}
-			if ($_POST['status'] != '') {
-				$sql .= ' AND `status`="' . $_POST['status'] . '" ';
-			}
-			if (!empty($_POST['cat'])) {
-				// Remove empty values from array
-				$selectedCategories = array_filter($_POST['cat']);
+    if (!empty($_POST['cust_sno'])) {
+        $sql .= ' AND ab.cust_id = "' . $_POST['cust_sno'] . '" ';
+    }
+    if (!empty($_POST['cust_name'])) {
+        $sql .= ' AND ab.guest_name LIKE "%' . $_POST['cust_name'] . '%"';
+    }
+    if (!empty($_POST['type'])) {
+        $sql .= ' AND ab.purpose = "' . $_POST['type'] . '" ';
+    }
+    if (!empty($_POST['status'])) {
+        $sql .= ' AND ab.status = "' . $_POST['status'] . '" ';
+    }
+    if (!empty($_POST['cat'])) {
+        $selectedCategories = array_filter($_POST['cat']);
+        if (!empty($selectedCategories)) {
+            $categoryConditions = [];
+            foreach ($selectedCategories as $category) {
+                $categoryConditions[] = 'FIND_IN_SET("' . $category . '", ab.cat_id)';
+            }
+            $sql .= ' AND (' . implode(' OR ', $categoryConditions) . ')';
+        }
+    }
 
-				if (!empty($selectedCategories)) { // Ensure at least one valid category is selected
-					$categoryConditions = [];
-					foreach ($selectedCategories as $category) {
-						$categoryConditions[] = 'FIND_IN_SET("' . $category . '", cat_id)';
-					}
-					$sql .= ' AND (' . implode(' OR ', $categoryConditions) . ')';
-				}
-			}
+    // Filter based on `mop`
+    if (!empty($_POST['mop'])) {
+        $sql .= ' AND ct.mop = "' . $_POST['mop'] . '" ';
+    }
+    if (!empty($_POST['cancel_status'])) {
+        $sql .= ' AND ct.type = "' . $_POST['cancel_status'] . '" ';
+    }
+} else {
+    $sql .= ' AND ab.created_on >= "' . date("Y-m-d") . '" 
+              AND ab.created_on < "' . date("Y-m-d", strtotime(date("Y-m-d")) + 86400) . '"';
+}
 
+$sql .= ' GROUP BY ab.sno'; // Ensures unique bookings are retrieved
 
-		} else {
-			$sql .= ' and created_on>="' . date("Y-m-d") . '" and created_on<"' . date("Y-m-d", strtotime(date("Y-m-d")) + 86400) . '"';
-		}
-		//echo $sql;
-		$result = execute_query($sql);
+$result = execute_query($sql);
+
 		while ($row = mysqli_fetch_array($result)) {
 			$i = 1;
 			$tot_advance = 0;  // Stores total advance amount
@@ -367,6 +358,7 @@ WHERE customer_transactions.sno=$uncancel_id";
 						$sql_mop .= ' AND `type`="' . $_POST['cancel_status'] . '" ';
 					}
 				}
+				//echo $sql_mop."<br>";
 				$result_mop = execute_query($sql_mop);
 				$col = ($i % 2 == 0) ? '#CCC' : '#EEE'; // Alternating row colors
 		
@@ -393,7 +385,7 @@ WHERE customer_transactions.sno=$uncancel_id";
 
 				echo '<tr style="background:' . $col . '">
 					<td style="background:' . $col . '">' . $i++ . '</td>
-					<td style="background:' . $col . '">' . $row['sno'] . '</td>
+					
 					<td style="background:' . $col . '">' . $details['company_name'] . '</td>
 					<td style="background:' . $col . '">' . $row['guest_name'] . '</td>
 					<td style="background:' . $col . '">' . $details['mobile'] . '</td>
@@ -538,19 +530,18 @@ WHERE customer_transactions.sno=$uncancel_id";
 				echo '<td style="background:' . $col . '" class="no-print"><a href="advance_print.php?print_id=' . $row['sno'] . '"  target="_blank">View</a></td>';
 				if ($row['status'] == 0 && $row_mop['type'] == 'ADVANCE_AMT') {
 					echo '<td style="background:' . $col . '" class="no-print">
-							<a href="report_advance.php?cancel_id=' . $row_mop['sno'] . '" 
-							   onclick="return confirm(\'Are you sure you want to cancel this transaction?\');">
-							   Cancel
-							</a>
-						  </td>';
+						<a href="#" onclick="cancelTransaction(' . $row_mop['sno'] . ', \'cancel\'); return false;">
+							Cancel
+						</a>
+					</td>';
 				} elseif ($row_mop['type'] == 'ADVANCE_AMT_CANCEL') {
 					echo '<td style="background:' . $col . '" class="no-print">
-							<a href="report_advance.php?uncancel_id=' . $row_mop['sno'] . '" 
-							   onclick="return confirm(\'Are you sure you want to revert the cancellation?\');">
-							   Canceled
-							</a>
-						  </td>';
+						<a href="#" onclick="cancelTransaction(' . $row_mop['sno'] . ', \'uncancel\'); return false;">
+							Canceled
+						</a>
+					</td>';
 				}
+				
 
 				echo '</tr>';
 			}
@@ -768,6 +759,35 @@ WHERE customer_transactions.sno=$uncancel_id";
 	}
 
 </script>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+function cancelTransaction(id, action) {
+    let confirmMsg = action === 'cancel' ? "Are you sure you want to cancel this transaction?" : 
+                                            "Are you sure you want to revert the cancellation?";
+    
+    if (confirm(confirmMsg)) {
+        $.ajax({
+            url: "process_transaction.php", 
+            type: "POST",
+            data: { transaction_id: id, action: action },
+            success: function(response) {
+                let result = JSON.parse(response);
+                if (result.status === "success") {
+                    alert(result.message);
+                    location.reload(); // Refreshes data without full page reload
+                } else {
+                    alert("Error: " + result.message);
+                }
+            },
+            error: function() {
+                alert("Something went wrong. Please try again.");
+            }
+        });
+    }
+}
+</script>
+
 <?php
 navigation('');
 page_footer();

@@ -4,7 +4,7 @@ set_time_limit(0);
 error_reporting(E_ALL);
 sethistory();
 
-// error_reporting(0);
+error_reporting(0);
 session_cache_limiter('nocache');
 session_start();
 function page_header($title='WeKnow ERP') {
@@ -534,6 +534,8 @@ function navigation($parent='') {
 								echo '<li class="nav-item'.$active.'"><a class="nav-link" href="'.$nav['hyper_link'].'"><i class="'.$nav['icon_image'].'"></i><p>'.$nav['link_description'].'</p></a></li>';
 							}
 							break;
+							
+							
                             // if(mysqli_num_rows($result_child_count) != 0){
                             //     echo '
                             //     <li class="nav-item'.$active.'">

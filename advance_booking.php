@@ -191,30 +191,47 @@ if (isset($_POST['submit'])) {
 			$daysNumberString = implode(',', $numberOfDays );
 			$allotment_date = $_POST['check_in']; // Input date in YYYY-MM-DD format
 
-			// Convert date to DD/MM/YYYY format
-			$formatted_date = date("d/m/Y", strtotime($allotment_date));
-			
-			// Extract Year and Month to count bookings in the same month
-			$year_month = date("m/Y", strtotime($allotment_date));
-			
-			// Query to get the last booking ID for the given month
-			$sql = "SELECT booking_id FROM advance_booking 
-					WHERE booking_id LIKE '%/$year_month/%' 
-					ORDER BY booking_id DESC LIMIT 1";
-			
-			$result = execute_query($sql);
-			$row = mysqli_fetch_assoc($result);
-			
-			if ($row) {
-				// Extract the last booking number
-				$last_booking_id = explode('/', $row['booking_id']);
-				$new_booking_number = intval(end($last_booking_id)) + 1;
-			} else {
-				$new_booking_number = 1;
-			}
-			
-			// Generate new booking ID
-			$booking_id = $formatted_date . '/' . str_pad($new_booking_number, 2, '0', STR_PAD_LEFT);
+// Convert date to DD/MM/YYYY format
+$formatted_date = date("d/m/Y", strtotime($allotment_date));
+
+// Extract Year and Month for filtering
+$year_month = date("m/Y", strtotime($allotment_date));
+
+// Query to get the last booking number for the given month
+$sql = "SELECT booking_id FROM advance_booking 
+        WHERE booking_id LIKE '%/$year_month/%' 
+        ORDER BY booking_id DESC LIMIT 1";
+
+$result = execute_query($sql);
+$row = mysqli_fetch_assoc($result);
+
+if ($row) {
+    // Extract the last booking number
+    $last_booking_id = explode('/', $row['booking_id']);
+    $new_booking_number = intval(end($last_booking_id)) + 1;
+} else {
+    $new_booking_number = 1;
+}
+
+// Generate new unique booking ID
+$booking_id = "$formatted_date/" . str_pad($new_booking_number, 2, '0', STR_PAD_LEFT);
+
+// Ensure uniqueness before inserting
+while (true) {
+    $check_sql = "SELECT COUNT(*) as count FROM advance_booking WHERE booking_id = '$booking_id'";
+    $check_result = execute_query($check_sql);
+    $count_row = mysqli_fetch_assoc($check_result);
+
+    if ($count_row['count'] == 0) {
+        // Unique booking_id found, break the loop
+        break;
+    }
+    
+    // If booking_id already exists, increment the number
+    $new_booking_number++;
+    $booking_id = "$formatted_date/" . str_pad($new_booking_number, 2, '0', STR_PAD_LEFT);
+}
+
 			
 			
 			
@@ -1181,35 +1198,72 @@ if (isset($_GET['del'])) {
 
 <script>
 	document.addEventListener("DOMContentLoaded", function () {
-		document.querySelectorAll("select[name='cat[]']").forEach(function (selectElement) {
-			var mode = selectElement.getAttribute("data-mode"); // Get mode (edit or normal)
+    document.querySelectorAll("select[name='cat[]']").forEach(function (selectElement) {
+        var mode = selectElement.getAttribute("data-mode"); // Get mode (edit or normal)
 
-			if (mode === "edit" && selectElement.value !== "") {
-				fetchRemainingRooms(selectElement); // Auto-load for edit mode
-			}
-		});
-	});
+        if (mode === "edit" && selectElement.value !== "") {
+            fetchRemainingRooms(selectElement); // Auto-load for edit mode
+        }
+    });
 
-	function fetchRemainingRooms(selectElement) {
-		var roomsno = selectElement.value;
-		var row = selectElement.closest('tr'); // Get the parent row
-		var remRoomInput = row.querySelector(".rem_room"); // Find the rem_room input in this row
-		var checkInDate = document.getElementById("check_in") ? document.getElementById("check_in").value : ''; // Get the check-in date
+    // Event listener for updating remaining rooms dynamically
+    document.getElementById("roomTable").addEventListener("input", function (event) {
+        if (event.target.classList.contains("number_of_room")) {
+            updateRemainingRooms();
+        }
+    });
+});
 
-		if (roomsno === "" || checkInDate === "") {
-			remRoomInput.value = "";
-			return;
-		}
+function fetchRemainingRooms(selectElement) {
+    var roomsno = selectElement.value;
+    var row = selectElement.closest('tr'); // Get the parent row
+    var remRoomInput = row.querySelector(".rem_room"); // Find the rem_room input in this row
+    var checkInDate = document.getElementById("check_in") ? document.getElementById("check_in").value : ''; // Get the check-in date
 
-		var xhr = new XMLHttpRequest();
-		xhr.open("GET", "fetch_remaining_rooms.php?sno=" + encodeURIComponent(roomsno) + "&check_in=" + encodeURIComponent(checkInDate), true);
-		xhr.onreadystatechange = function () {
-			if (xhr.readyState == 4 && xhr.status == 200) {
-				remRoomInput.value = xhr.responseText;
-			}
-		};
-		xhr.send();
-	}
+    if (roomsno === "" || checkInDate === "") {
+        remRoomInput.value = "";
+        return;
+    }
+
+    var xhr = new XMLHttpRequest();
+    xhr.open("GET", "fetch_remaining_rooms.php?sno=" + encodeURIComponent(roomsno) + "&check_in=" + encodeURIComponent(checkInDate), true);
+    xhr.onreadystatechange = function () {
+        if (xhr.readyState == 4 && xhr.status == 200) {
+            remRoomInput.value = xhr.responseText;
+            updateRemainingRooms(); // Update after fetching
+        }
+    };
+    xhr.send();
+}
+
+function updateRemainingRooms() {
+    var rows = document.querySelectorAll("#roomTable tr");
+    var categoryRooms = {}; // Object to track remaining rooms per category
+
+    rows.forEach((row, index) => {
+        var categorySelect = row.querySelector("select[name='cat[]']");
+        var remainingInput = row.querySelector(".rem_room");
+        var bookedInput = row.querySelector("input[name='number_of_room[]']");
+
+        if (categorySelect && remainingInput && bookedInput) {
+            var category = categorySelect.value;
+            var bookedRooms = parseInt(bookedInput.value) || 0;
+            var initialRemaining = parseInt(remainingInput.value) || 0;
+
+            // If first row for this category, use fetched value
+            if (!(category in categoryRooms)) {
+                categoryRooms[category] = initialRemaining;
+            }
+
+            // Update remaining rooms dynamically
+            remainingInput.value = categoryRooms[category];
+
+            // Reduce available rooms for the next row
+            categoryRooms[category] -= bookedRooms;
+        }
+    });
+}
+
 
 
 	function addRow() {

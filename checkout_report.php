@@ -133,7 +133,7 @@ WHERE customer_transactions.sno=$uncancel_id";
 	<table width="100%" class="table table-bordered">
 		<tr>
 			<th style="background:#00888d; color:#FFF;">S.No.</th>
-			<th style="background:#00888d; color:#FFF;">Receipt No.</th>
+			<!-- <th style="background:#00888d; color:#FFF;">Receipt No.</th> -->
 			<th style="background:#00888d; color:#FFF;">Comapny Name</th>
 			<th style="background:#00888d; color:#FFF;">Guest Name</th>
 			<th style="background:#00888d; color:#FFF;">Mobile</th>
@@ -207,7 +207,7 @@ WHERE customer_transactions.sno=$uncancel_id";
 
 				echo '<tr style="background:' . $col . '">
 					<td style="background:' . $col . '">' . $i++ . '</td>
-					<td style="background:' . $col . '">' . $row['sno'] . '</td>
+					
 					<td style="background:' . $col . '">' . $details['company_name'] . '</td>
 					<td style="background:' . $col . '">' . $row['guest_name'] . '</td>
 					<td style="background:' . $col . '">' . $details['mobile'] . '</td>
